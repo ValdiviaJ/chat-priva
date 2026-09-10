@@ -1,0 +1,116 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { validateRoomForJoin, joinRoom } from '../../services/roomService';
+import { useToast } from '../../hooks/useToast';
+import { Toast } from '../common/Toast';
+import { LogIn, Loader2, ArrowRight } from 'lucide-react';
+
+export const JoinRoom: React.FC = () => {
+  const navigate = useNavigate();
+  const { toast, showToast } = useToast();
+  const [code, setCode] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+    setCode(val);
+  };
+
+  const handleJoin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLoading) return;
+
+    const cleanCode = code.trim().toUpperCase();
+    if (cleanCode.length !== 8) {
+      showToast('El código debe tener exactamente 8 caracteres', 'warning');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const result = await validateRoomForJoin(cleanCode);
+      if (!result.valid) {
+        showToast(result.reason || 'No es posible unirse a esta sala', 'error');
+        return;
+      }
+
+      await joinRoom(cleanCode, nickname.trim() || undefined);
+      navigate(`/chat/${cleanCode}`);
+    } catch (err: any) {
+      showToast(err.message || 'Error al intentar unirse', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl shadow-slate-200/50 dark:shadow-none transition-all duration-300">
+      {toast && <Toast message={toast.message} type={toast.type} />}
+
+      <form onSubmit={handleJoin} className="space-y-5">
+        <div className="space-y-1.5">
+          <label
+            htmlFor="join-code"
+            className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
+          >
+            Código de la sala
+          </label>
+          <input
+            id="join-code"
+            type="text"
+            placeholder="Ej^ A7F92KX4C"
+            value={code}
+            onChange={handleCodeChange}
+            maxLength={8}
+            autoComplete="off"
+            spellCheck="false"
+            className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all font-mono text-lg tracking-widest uppercase"
+            disabled={isLoading}
+          />
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            El persona que creó la sala debió compartirte este código.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <label
+            htmlFor="join-nickname"
+            className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
+          >
+            Tu nombre o apodo (opcional)
+          </label>
+          <input
+            id="join-nickname"
+            type="text"
+            maxLength={20}
+            placeholder="Ej. Sam"
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+            disabled={isLoading}
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={isLoading || code.trim().length !== 8}
+          className="w-full flex items-center justify-center gap-2 py-3.5 px-5 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white font-medium text-sm rounded-xl shadow-lg shadow-indigo-600/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Verificando código...</span>
+            </>
+          ) : (
+            <>
+              <LogIn className="w-4 h-4" />
+              <span>Unirse al Chat</span>
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
+        </button>
+      </form>
+    </div>
+  );
+};
