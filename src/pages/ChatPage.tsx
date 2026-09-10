@@ -17,8 +17,8 @@ export const ChatPage: React.FC = () => {
   const { showToast } = useToast();
 
   const { room, currentParticipant, loading: roomLoading, error: roomError, isFull } = useRoom(roomId);
-  const { messages, loading: messagesLoading, sending, sendMessage } = useMessages(roomId);
-  const { isOtherOnline, isOtherTyping, setTyping, connectionState } = usePresence(roomId);
+  const { messages, loading: messagesLoading, sending, sendMessage } = useMessages(room?.id);
+  const { isOtherOnline, isOtherTyping, setTyping, connectionState } = usePresence(room?.id);
 
   if (roomLoading || (messagesLoading && !roomError)) {
     return <LoadingScreen message='Conectando a la conversación...' />;

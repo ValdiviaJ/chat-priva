@@ -26,11 +26,13 @@ export function useRoom(roomId: string | undefined) {
         setLoading(true);
         setError(null);
 
-        const { data: roomData, error: roomErr } = await supabase
-          .from('rooms')
-          .select('*')
-          .eq('id', roomId as any)
-          .maybeSingle();
+        const currentId = roomId!;
+        const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(currentId);
+        const query = supabase.from('rooms').select('*');
+
+        const { data: roomData, error: roomErr } = isUuid
+          ? await query.eq('id', currentId as any).maybeSingle()
+          : await query.eq('code', currentId.trim().toUpperCase()).maybeSingle();
 
         if (roomErr) throw roomErr;
         if (!roomData) {
@@ -41,10 +43,12 @@ export function useRoom(roomId: string | undefined) {
           return;
         }
 
+        const realRoom = roomData as Room;
+
         const { data: participantsData, error: partErr } = await supabase
           .from('participants')
           .select('*')
-          .eq('room_id', roomId as any);
+          .eq('room_id', realRoom.id as any);
 
         if (partErr) throw partErr;
 
@@ -73,7 +77,7 @@ export function useRoom(roomId: string | undefined) {
         const { data: newPart, error: joinErr } = await supabase
           .from('participants')
           .insert({
-            room_id: roomId,
+            room_id: realRoom.id,
             client_id: clientId,
           } as any)
           .select()
@@ -82,7 +86,7 @@ export function useRoom(roomId: string | undefined) {
         if (joinErr) throw joinErr;
 
         if (isMounted) {
-          setRoom(roomData as Room);
+          setRoom(realRoom);
           setParticipants([...pList, newPart as Participant]);
           setCurrentParticipant(newPart as Participant);
           setLoading(false);
