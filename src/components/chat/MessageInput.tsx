@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send } from 'lucide-react';
+import { Send, Paperclip, Smile, Code2 } from 'lucide-react';
+import { useToast } from '../common/Toast';
 
 interface MessageInputProps {
   onSendMessage: (content: string) => Promise<boolean>;
@@ -16,13 +17,13 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height =
-        Math.min(textareaRef.current.scrollHeight, 140) + 'px';
+        Math.min(textareaRef.current.scrollHeight, 160) + 'px';
     }
   }, [content]);
 
@@ -35,7 +36,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       onTyping(false);
     }, 1500);
   };
-
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -57,7 +57,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     setIsSubmitting(false);
   };
 
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -65,47 +64,78 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     }
   };
 
+  const handleInsertSnippet = () => {
+    setContent((prev) => prev + (prev.endsWith('\n') || !prev ? '```\n\n```' : '\n```\n\n```'));
+    if (textareaRef.current) textareaRef.current.focus();
+  };
 
-  const charCount = content.length;
-  const isTooLong = charCount > 2000;
-  const canSend = content.trim().length > 0 && !isTooLong && !isSubmitting && !disabled;
+  const handleInsertEmoji = (emoji: string) => {
+    setContent((prev) => prev + emoji);
+    if (textareaRef.current) textareaRef.current.focus();
+  };
 
+  const canSend = content.trim().length > 0 && !isSubmitting && !disabled;
 
   return (
-    <footer className='p-3 sm:p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shrink-0 sticky bottom-0 z-20'>
-      <form onSubmit={handleSubmit} className='max-w-4l mx-auto flex items-end gap-2'>
-        <div className='flex-1 relative rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-750 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all'>
+    <footer className="p-4 sm:p-6 bg-[#080d1a] shrink-0 sticky bottom-0 z-20">
+      <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
+        <div className="relative rounded-2xl bg-[#111927] border border-[#1e2a40] focus-within:border-blue-500/80 transition-all p-3.5 sm:p-4 shadow-lg shadow-black/20">
           <textarea
             ref={textareaRef}
             value={content}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             disabled={disabled || isSubmitting}
-            placeholder='Escribe un mensaje...'
-            rows={1}
-            maxLength={2100}
-            className='w-full max-h-36 py-3 pl-4 pr-16 bg-transparent text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none leading-relaxed'
-            aria-label='Escribir mensaje'
+            placeholder="Escribe tu mensaje aquí..."
+            rows={2}
+            className="w-full bg-transparent text-sm text-slate-100 placeholder-slate-400 resize-none focus:outline-none leading-relaxed min-h-[48px] max-h-36"
+            aria-label="Escribir mensaje"
           />
-          {charCount > 1600 && (
-            <span
-              className={'absolute right-3.5 bottom-2 text-[10px] font-mono ' + (isTooLong ? 'text-rose-500 font-bold' : 'text-slate-400')}
+
+          {/* Action icons bar at bottom of textarea, exactly as in Modelo.png */}
+          <div className="flex items-center justify-between pt-2 mt-1 border-t border-slate-800/40">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <button
+                type="button"
+                onClick={() => showToast('Subida de archivos temporalmente no requerida', 'info')}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                title="Adjuntar archivo"
+              >
+                <Paperclip className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleInsertEmoji('😊')}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                title="Emojis"
+              >
+                <Smile className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleInsertSnippet}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                title="Insertar bloque de código"
+              >
+                <Code2 className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Blue Send Button */}
+            <button
+              type="submit"
+              disabled={!canSend}
+              className="h-10 w-10 rounded-xl bg-[#1e69ff] hover:bg-blue-600 disabled:opacity-30 disabled:hover:bg-[#1e69ff] text-white flex items-center justify-center transition-all duration-200 shadow-md shadow-blue-600/30 active:scale-95 cursor-pointer"
+              aria-label="Enviar mensaje"
             >
-              {charCount}/2000
-            </span>
-          )}
+              <Send className="w-4 h-4 -translate-y-[0.5px] translate-x-[0.5px]" />
+            </button>
+          </div>
         </div>
-
-
-        <button
-          type='submit'
-          disabled={!canSend}
-          className='h-11 w-11 rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:hover:bg-indigo-600 text-white flex items-center justify-center transition-all duration-200 shadow-sm shrink-0 active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
-          aria-label='Enviar mensaje'
-        >
-          <Send className='w-4 h-4' />
-        </button>
       </form>
     </footer>
   );
 };
+

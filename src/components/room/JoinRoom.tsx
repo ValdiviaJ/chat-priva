@@ -45,38 +45,38 @@ export const JoinRoom: React.FC = () => {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl shadow-slate-200/50 dark:shadow-none transition-all duration-300">
+    <div className="bg-[#0c121e] border border-[#1a2333] rounded-2xl p-6 sm:p-8 shadow-xl transition-all duration-300">
       {toast && <Toast message={toast.message} type={toast.type} />}
 
       <form onSubmit={handleJoin} className="space-y-5">
         <div className="space-y-1.5">
           <label
             htmlFor="join-code"
-            className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
+            className="block text-xs font-semibold uppercase tracking-wider text-slate-400"
           >
             Código de la sala
           </label>
           <input
             id="join-code"
             type="text"
-            placeholder="Ej^ A7F92KX4C"
+            placeholder="Ej. A7F92KX4"
             value={code}
             onChange={handleCodeChange}
             maxLength={8}
             autoComplete="off"
             spellCheck="false"
-            className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all font-mono text-lg tracking-widest uppercase"
+            className="w-full px-4 py-3.5 bg-[#131b2c] border border-[#1f2c44] rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all font-mono text-lg tracking-widest uppercase"
             disabled={isLoading}
           />
-          <p className="text-xs text-slate-400 dark:text-slate-500">
-            El persona que creó la sala debió compartirte este código.
+          <p className="text-xs text-slate-400">
+            La persona que creó la sala debió compartirte este código.
           </p>
         </div>
 
         <div className="space-y-1.5">
           <label
             htmlFor="join-nickname"
-            className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
+            className="block text-xs font-semibold uppercase tracking-wider text-slate-400"
           >
             Tu nombre o apodo (opcional)
           </label>
@@ -84,10 +84,10 @@ export const JoinRoom: React.FC = () => {
             id="join-nickname"
             type="text"
             maxLength={20}
-            placeholder="Ej. Sam"
+            placeholder="Ej. Alex"
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
-            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+            className="w-full px-4 py-3 bg-[#131b2c] border border-[#1f2c44] rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
             disabled={isLoading}
           />
         </div>
@@ -95,7 +95,7 @@ export const JoinRoom: React.FC = () => {
         <button
           type="submit"
           disabled={isLoading || code.trim().length !== 8}
-          className="w-full flex items-center justify-center gap-2 py-3.5 px-5 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white font-medium text-sm rounded-xl shadow-lg shadow-indigo-600/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 py-3.5 px-5 bg-[#1e69ff] hover:bg-blue-600 active:scale-[0.99] text-white font-medium text-sm rounded-xl shadow-lg shadow-blue-600/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
         >
           {isLoading ? (
             <>
@@ -114,3 +114,4 @@ export const JoinRoom: React.FC = () => {
     </div>
   );
 };
+

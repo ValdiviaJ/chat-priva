@@ -59,7 +59,6 @@ export const MessageList: React.FC<MessageListProps> = ({
     }
   }, [messages, currentParticipant?.id]);
 
-
   useEffect(() => {
     if (isOtherTyping && checkIfNearBottom()) {
       scrollToBottom(true);
@@ -67,26 +66,26 @@ export const MessageList: React.FC<MessageListProps> = ({
   }, [isOtherTyping]);
 
   return (
-    <div className='relative flex-1 min-h-0 bg-slate-50/50 dark:bg-slate-950/40'>
+    <div className="relative flex-1 min-h-0 bg-[#080d1a]">
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className='h-full overflow-y-auto px-4 py-4 flex flex-col scroll-smooth'
+        className="h-full overflow-y-auto px-4 sm:px-8 py-6 flex flex-col scroll-smooth scrollbar-thin scrollbar-thumb-slate-800"
       >
         {messages.length === 0 ? (
-          <div className='m-auto flex flex-col items-center justify-center text-center p-6 text-slate-400 dark:text-slate-500 max-w-sm'>
-            <div className='w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 dark:text-indigo-400 flex items-center justify-center mb-3'>
-              <MessageSquare className='w-6 h-6' />
+          <div className="m-auto flex flex-col items-center justify-center text-center p-6 text-slate-400 max-w-sm">
+            <div className="w-14 h-14 rounded-2xl bg-[#131d2e] border border-blue-500/20 text-blue-400 flex items-center justify-center mb-4">
+              <MessageSquare className="w-7 h-7" />
             </div>
-            <p className='font-medium text-slate-700 dark:text-slate-300 text-sm mb-1'>
+            <p className="font-semibold text-slate-200 text-base mb-1">
               Aún no hay mensajes
             </p>
-            <p className='text-xs text-slate-400 dark:text-slate-500'>
+            <p className="text-xs text-slate-400">
               Envía el primero para comenzar la conversación
             </p>
           </div>
         ) : (
-          <div className='flex flex-col justify-end min-h-full'>
+          <div className="flex flex-col justify-end min-h-full max-w-4xl w-full mx-auto">
             {messages.map((msg) => (
               <MessageBubble
                 key={msg.id}
@@ -95,7 +94,7 @@ export const MessageList: React.FC<MessageListProps> = ({
               />
             ))}
             {isOtherTyping && <TypingIndicator />}
-            <div ref={bottomRef} className='h-1' />
+            <div ref={bottomRef} className="h-1" />
           </div>
         )}
       </div>
@@ -103,13 +102,14 @@ export const MessageList: React.FC<MessageListProps> = ({
       {showScrollBottom && (
         <button
           onClick={() => scrollToBottom(true)}
-          className='absolute bottom-4 right-4 z-20 flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg shadow-indigo-600/30 text-xs font-medium transition-all duration-200'
-          aria-label='Ir al final de la conversación'
+          className="absolute bottom-4 right-6 z-20 flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg shadow-blue-600/30 text-xs font-medium transition-all duration-200 cursor-pointer"
+          aria-label="Ir al final de la conversación"
         >
-          <ArrowDown className='w-3.5 h-3.5' />
+          <ArrowDown className="w-3.5 h-3.5" />
           <span>Nuevo mensaje</span>
         </button>
       )}
     </div>
   );
 };
+

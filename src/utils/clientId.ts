@@ -1,4 +1,5 @@
 const CLIENT_ID_KEY = 'chat_client_id';
+const USERNAME_KEY = 'chat_username';
 
 export function getClientId(): string {
   let clientId = localStorage.getItem(CLIENT_ID_KEY);
@@ -10,4 +11,12 @@ export function getClientId(): string {
     localStorage.setItem(CLIENT_ID_KEY, clientId);
   }
   return clientId;
+}
+
+export function getUserName(): string {
+  return localStorage.getItem(USERNAME_KEY) || 'Angel Valdivia';
+}
+
+export function setUserName(name: string): void {
+  localStorage.setItem(USERNAME_KEY, name);
 }
