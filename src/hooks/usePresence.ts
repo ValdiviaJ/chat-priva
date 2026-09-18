@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../services/supabase';
-import { getClientId } from '../utils/clientId';
+import { getClientId, getUserName } from '../utils/clientId';
 
 interface PresenceState {
   isOtherOnline: boolean;
+  otherUsername: string | null;
   isOtherTyping: boolean;
   setTyping: (typing: boolean) => void;
   connectionState: 'connected' | 'connecting' | 'disconnected';
@@ -11,6 +12,7 @@ interface PresenceState {
 
 export function usePresence(roomId: string | undefined): PresenceState {
   const [isOtherOnline, setIsOtherOnline] = useState(false);
+  const [otherUsername, setOtherUsername] = useState<string | null>(null);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [connectionState, setConnectionState] = useState<
     'connected' | 'connecting' | 'disconnected'
@@ -19,6 +21,7 @@ export function usePresence(roomId: string | undefined): PresenceState {
   const channelRef = useRef<any>(null);
 
   const clientId = getClientId();
+  const myUsername = getUserName();
 
   useEffect(() => {
     if (!roomId) return;
@@ -34,30 +37,41 @@ export function usePresence(roomId: string | undefined): PresenceState {
 
     channelRef.current = channel;
 
+    const updatePresenceState = () => {
+      const state = channel.presenceState();
+      const keys = Object.keys(state);
+      const otherKey = keys.find((k) => k !== clientId);
+      if (otherKey && state[otherKey] && (state[otherKey] as any[]).length > 0) {
+        setIsOtherOnline(true);
+        const presenceData = (state[otherKey] as any[])[0];
+        if (presenceData?.username) {
+          setOtherUsername(presenceData.username);
+        }
+      } else {
+        setIsOtherOnline(false);
+      }
+    };
+
     channel
       .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        const keys = Object.keys(state);
-        const otherPresent = keys.some((k) => k !== clientId);
-        setIsOtherOnline(otherPresent);
+        updatePresenceState();
       })
-      .on('presence', { event: 'join' }, ({ key }) => {
+      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
         if (key !== clientId) {
           setIsOtherOnline(true);
+          if (newPresences && newPresences.length > 0 && newPresences[0]?.username) {
+            setOtherUsername(newPresences[0].username);
+          }
         }
       })
       .on('presence', { event: 'leave' }, ({ key }) => {
         if (key !== clientId) {
-          const state = channel.presenceState();
-          const otherPresent = Object.keys(state).some(
-            (k) => k !== clientId && k !== key
-          );
-          setIsOtherOnline(otherPresent);
+          updatePresenceState();
           setIsOtherTyping(false);
         }
       })
       .on('broadcast', { event: 'typing' }, ({ payload }) => {
-        if (payload?.senderClientId && payload.seenderClientId !== clientId) {
+        if (payload?.senderClientId && payload.senderClientId !== clientId) {
           setIsOtherTyping(Boolean(payload.isTyping));
 
           if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -72,6 +86,7 @@ export function usePresence(roomId: string | undefined): PresenceState {
         if (status === 'SUBSCRIBED') {
           setConnectionState('connected');
           channel.track({
+            username: myUsername,
             online_at: new Date().toISOString(),
           });
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
@@ -87,8 +102,7 @@ export function usePresence(roomId: string | undefined): PresenceState {
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [roomId, clientId]);
-
+  }, [roomId, clientId, myUsername]);
 
   const setTyping = useCallback(
     (typing: boolean) => {
@@ -106,9 +120,9 @@ export function usePresence(roomId: string | undefined): PresenceState {
     [clientId, connectionState]
   );
 
-
   return {
     isOtherOnline,
+    otherUsername,
     isOtherTyping,
     setTyping,
     connectionState,

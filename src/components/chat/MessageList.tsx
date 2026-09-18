@@ -8,12 +8,14 @@ interface MessageListProps {
   messages: Message[];
   currentParticipant: Participant;
   isOtherTyping: boolean;
+  otherUsername?: string | null;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
   messages,
   currentParticipant,
   isOtherTyping,
+  otherUsername,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -91,6 +93,7 @@ export const MessageList: React.FC<MessageListProps> = ({
                 key={msg.id}
                 message={msg}
                 isMe={msg.sender_id === currentParticipant.id}
+                otherUsername={otherUsername}
               />
             ))}
             {isOtherTyping && <TypingIndicator />}

@@ -4,6 +4,7 @@ import { createRoom } from '../../services/roomService';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../common/Toast';
 import { Copy, Check, ArrowRight, Loader2, KeyRound, Sparkles, Share2 } from 'lucide-react';
+import { setUserName } from '../../utils/clientId';
 import confetti from 'canvas-confetti';
 
 export const CreateRoom: React.FC = () => {
@@ -21,7 +22,10 @@ export const CreateRoom: React.FC = () => {
 
     try {
       setIsLoading(true);
-      const { room } = await createRoom(nickname.trim() || undefined);
+      const chosenNickname = nickname.trim() || 'Anónimo';
+      setUserName(chosenNickname);
+
+      const { room } = await createRoom(chosenNickname);
       setCreatedRoomCode(room.code);
 
       try {
@@ -89,14 +93,14 @@ export const CreateRoom: React.FC = () => {
               id="create-nickname"
               type="text"
               maxLength={20}
-              placeholder="Ej. Angel Valdivia"
+              placeholder="Ej. Alex (o dejar vacío para Anónimo)"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               className="w-full px-4 py-3 bg-slate-50 dark:bg-[#131b2c] border border-slate-200 dark:border-[#1f2c44] rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
               disabled={isLoading}
             />
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Si lo dejas vacío, te identificarás con tu apodo por defecto.
+              Si lo dejas vacío, tu apodo visible será <strong>Anónimo</strong>.
             </p>
           </div>
 

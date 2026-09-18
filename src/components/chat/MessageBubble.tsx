@@ -7,13 +7,23 @@ import { getUserName } from '../../utils/clientId';
 interface MessageBubbleProps {
   message: Message;
   isMe: boolean;
+  otherUsername?: string | null;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message, isMe }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message, isMe, otherUsername }) => {
   const formattedTime = formatMessageTime(message.created_at);
 
   const getMyInitials = () => {
-    const name = getUserName() || 'Angel Valdivia';
+    const name = getUserName() || 'Anónimo';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  const getOtherInitials = () => {
+    const name = otherUsername || 'Anónimo';
     const parts = name.trim().split(' ');
     if (parts.length >= 2) {
       return (parts[0][0] + parts[1][0]).toUpperCase();
@@ -27,10 +37,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message
         isMe ? 'justify-end' : 'justify-start'
       }`}
     >
-      {/* Other user avatar (robot/bot/user icon like in Modelo.png) */}
+      {/* Other user avatar with initials */}
       {!isMe && (
-        <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-[#1c2e4e] border border-slate-300 dark:border-blue-500/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mb-1">
-          <Bot className="w-4 h-4" />
+        <div
+          className="w-8 h-8 rounded-full bg-slate-200 dark:bg-[#1c2e4e] border border-slate-300 dark:border-blue-500/30 text-blue-600 dark:text-blue-400 font-semibold text-xs flex items-center justify-center shrink-0 mb-1"
+          title={otherUsername || 'Anónimo'}
+        >
+          {getOtherInitials()}
         </div>
       )}
 

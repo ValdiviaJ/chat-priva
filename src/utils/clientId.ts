@@ -14,9 +14,10 @@ export function getClientId(): string {
 }
 
 export function getUserName(): string {
-  return localStorage.getItem(USERNAME_KEY) || 'Angel Valdivia';
+  return localStorage.getItem(USERNAME_KEY) || 'Anónimo';
 }
 
 export function setUserName(name: string): void {
-  localStorage.setItem(USERNAME_KEY, name);
+  localStorage.setItem(USERNAME_KEY, name.trim() || 'Anónimo');
 }
+

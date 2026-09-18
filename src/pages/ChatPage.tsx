@@ -29,12 +29,13 @@ export const ChatPage: React.FC = () => {
 
   const { room, currentParticipant, loading: roomLoading, error: roomError, isFull } = useRoom(roomId);
   const { messages, loading: messagesLoading, sending, sendMessage } = useMessages(room?.id);
-  const { isOtherOnline, isOtherTyping, setTyping, connectionState } = usePresence(room?.id);
+  const { isOtherOnline, otherUsername, isOtherTyping, setTyping, connectionState } = usePresence(room?.id);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [infoPanelOpen, setInfoPanelOpen] = useState(false);
   const [conversations, setConversations] = useState<SavedConversation[]>([]);
-  const [chatTitle, setChatTitle] = useState('Hola, ¿cómo estás?');
+  const [chatTitle, setChatTitle] = useState('');
+  const [isCustomTitle, setIsCustomTitle] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -50,8 +51,14 @@ export const ChatPage: React.FC = () => {
         (c) => c.code === room.code || c.id === room.id
       );
 
-      const title = existing?.title || 'Hola, ¿cómo estás?';
-      setChatTitle(title);
+      // Determine display title: custom renamed title > other user nickname > default "Anónimo"
+      const title = existing?.title && existing.title !== 'Hola, ¿cómo estás?'
+        ? existing.title
+        : otherUsername || 'Anónimo';
+
+      if (!isCustomTitle) {
+        setChatTitle(title);
+      }
 
       const lastMsg = messages[messages.length - 1]?.content;
 
@@ -59,17 +66,18 @@ export const ChatPage: React.FC = () => {
         id: room.id,
         code: room.code,
         title,
-        lastMessage: lastMsg || '¡Hola! Estoy bien, gracias por preguntar.',
+        lastMessage: lastMsg || 'Conversación iniciada',
         lastActivity: room.last_activity || new Date().toISOString(),
         icon: 'message',
       });
 
       setConversations(getSavedConversations());
     }
-  }, [room, messages.length]);
+  }, [room, messages.length, otherUsername, isCustomTitle]);
 
   const handleRename = (newTitle: string) => {
     setChatTitle(newTitle);
+    setIsCustomTitle(true);
     if (room) {
       updateConversationTitle(room.code, newTitle);
       setConversations(getSavedConversations());
@@ -180,6 +188,7 @@ export const ChatPage: React.FC = () => {
           messages={messages}
           currentParticipant={currentParticipant}
           isOtherTyping={isOtherTyping}
+          otherUsername={otherUsername}
         />
 
         <MessageInput
