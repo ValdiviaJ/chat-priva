@@ -73,7 +73,7 @@ export const CreateRoom: React.FC = () => {
   };
 
   return (
-    <div className="bg-[#0c121e] border border-[#1a2333] rounded-2xl p-6 sm:p-8 shadow-xl transition-all duration-300">
+    <div className="bg-white dark:bg-[#0c121e] border border-slate-200 dark:border-[#1a2333] rounded-2xl p-6 sm:p-8 shadow-xl transition-all duration-300">
       {toast && <Toast message={toast.message} type={toast.type} />}
 
       {!createdRoomCode ? (
@@ -81,7 +81,7 @@ export const CreateRoom: React.FC = () => {
           <div className="space-y-1.5">
             <label
               htmlFor="create-nickname"
-              className="block text-xs font-semibold uppercase tracking-wider text-slate-400"
+              className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
             >
               Tu nombre o apodo (opcional)
             </label>
@@ -92,10 +92,10 @@ export const CreateRoom: React.FC = () => {
               placeholder="Ej. Angel Valdivia"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              className="w-full px-4 py-3 bg-[#131b2c] border border-[#1f2c44] rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-[#131b2c] border border-slate-200 dark:border-[#1f2c44] rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
               disabled={isLoading}
             />
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Si lo dejas vacío, te identificarás con tu apodo por defecto.
             </p>
           </div>
@@ -120,31 +120,31 @@ export const CreateRoom: React.FC = () => {
         </form>
       ) : (
         <div className="text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
-          <div className="inline-flex p-3 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+          <div className="inline-flex p-3 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
             <KeyRound className="w-7 h-7" />
           </div>
 
           <div>
-            <h3 className="text-lg font-bold text-white mb-1">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
               ¡Tu sala está lista!
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Comparte el código o el enlace con la persona con quien deseas chatear:
             </p>
           </div>
 
-          <div className="flex items-center justify-center gap-2 p-3.5 bg-[#131b2c] border border-[#1f2c44] rounded-xl">
-            <span className="font-mono font-bold text-2xl tracking-widest text-blue-400 select-all">
+          <div className="flex items-center justify-center gap-2 p-3.5 bg-slate-50 dark:bg-[#131b2c] border border-slate-200 dark:border-[#1f2c44] rounded-xl">
+            <span className="font-mono font-bold text-2xl tracking-widest text-blue-600 dark:text-blue-400 select-all">
               {createdRoomCode}
             </span>
             <button
               onClick={copyCode}
               type="button"
-              className="p-2 hover:bg-[#1c2840] rounded-lg text-slate-300 hover:text-white transition-colors cursor-pointer"
+              className="p-2 hover:bg-slate-200 dark:hover:bg-[#1c2840] rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
               title="Copiar código"
             >
               {copiedCode ? (
-                <Check className="w-5 h-5 text-emerald-400" />
+                <Check className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
               ) : (
                 <Copy className="w-5 h-5" />
               )}
@@ -155,9 +155,9 @@ export const CreateRoom: React.FC = () => {
             <button
               onClick={copyLink}
               type="button"
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-[#131b2c] hover:bg-[#1a253c] border border-[#1f2c44] text-slate-200 font-medium text-xs rounded-xl transition-all cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-[#131b2c] dark:hover:bg-[#1a253c] border border-slate-200 dark:border-[#1f2c44] text-slate-700 dark:text-slate-200 font-medium text-xs rounded-xl transition-all cursor-pointer"
             >
-              {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-blue-400" />}
+              {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />}
               <span>Copiar enlace</span>
             </button>
 

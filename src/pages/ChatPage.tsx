@@ -153,7 +153,7 @@ export const ChatPage: React.FC = () => {
   };
 
   return (
-    <div className="h-screen h-[100dvh] flex bg-[#080d1a] text-slate-100 overflow-hidden">
+    <div className="h-screen h-[100dvh] flex bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 overflow-hidden transition-colors">
       {/* Left Sidebar */}
       <Sidebar
         conversations={conversations}
@@ -164,7 +164,7 @@ export const ChatPage: React.FC = () => {
       />
 
       {/* Main Chat View Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[#080d1a]">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-slate-50 dark:bg-[#080d1a]">
         <ChatHeader
           room={room}
           currentParticipant={currentParticipant}
@@ -206,10 +206,10 @@ export const ChatPage: React.FC = () => {
         onClose={() => setShowDeleteModal(false)}
         title="Eliminar conversación"
       >
-        <p className="text-sm text-rose-400 mb-2 font-semibold">
+        <p className="text-sm text-rose-500 dark:text-rose-400 mb-2 font-semibold">
           Atención: Esta acción es irreversible.
         </p>
-        <p className="text-sm text-slate-300 mb-6">
+        <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">
           Se eliminará la sala completa y todos los mensajes asociados para ambas personas.
         </p>
         <div className="flex justify-end gap-3">

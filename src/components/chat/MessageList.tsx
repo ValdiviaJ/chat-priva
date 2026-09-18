@@ -66,21 +66,21 @@ export const MessageList: React.FC<MessageListProps> = ({
   }, [isOtherTyping]);
 
   return (
-    <div className="relative flex-1 min-h-0 bg-[#080d1a]">
+    <div className="relative flex-1 min-h-0 bg-slate-50 dark:bg-[#080d1a] transition-colors">
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="h-full overflow-y-auto px-4 sm:px-8 py-6 flex flex-col scroll-smooth scrollbar-thin scrollbar-thumb-slate-800"
+        className="h-full overflow-y-auto px-4 sm:px-8 py-6 flex flex-col scroll-smooth scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800"
       >
         {messages.length === 0 ? (
-          <div className="m-auto flex flex-col items-center justify-center text-center p-6 text-slate-400 max-w-sm">
-            <div className="w-14 h-14 rounded-2xl bg-[#131d2e] border border-blue-500/20 text-blue-400 flex items-center justify-center mb-4">
+          <div className="m-auto flex flex-col items-center justify-center text-center p-6 text-slate-500 dark:text-slate-400 max-w-sm">
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-[#131d2e] border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4">
               <MessageSquare className="w-7 h-7" />
             </div>
-            <p className="font-semibold text-slate-200 text-base mb-1">
+            <p className="font-semibold text-slate-800 dark:text-slate-200 text-base mb-1">
               Aún no hay mensajes
             </p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Envía el primero para comenzar la conversación
             </p>
           </div>

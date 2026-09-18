@@ -77,9 +77,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const canSend = content.trim().length > 0 && !isSubmitting && !disabled;
 
   return (
-    <footer className="p-4 sm:p-6 bg-[#080d1a] shrink-0 sticky bottom-0 z-20">
+    <footer className="p-4 sm:p-6 bg-white dark:bg-[#080d1a] border-t border-slate-200 dark:border-transparent shrink-0 sticky bottom-0 z-20 transition-colors">
       <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
-        <div className="relative rounded-2xl bg-[#111927] border border-[#1e2a40] focus-within:border-blue-500/80 transition-all p-3.5 sm:p-4 shadow-lg shadow-black/20">
+        <div className="relative rounded-2xl bg-slate-50 dark:bg-[#111927] border border-slate-300 dark:border-[#1e2a40] focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all p-3.5 sm:p-4 shadow-sm dark:shadow-lg dark:shadow-black/20">
           <textarea
             ref={textareaRef}
             value={content}
@@ -88,17 +88,17 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             disabled={disabled || isSubmitting}
             placeholder="Escribe tu mensaje aquí..."
             rows={2}
-            className="w-full bg-transparent text-sm text-slate-100 placeholder-slate-400 resize-none focus:outline-none leading-relaxed min-h-[48px] max-h-36"
+            className="w-full bg-transparent text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none leading-relaxed min-h-[48px] max-h-36"
             aria-label="Escribir mensaje"
           />
 
           {/* Action icons bar at bottom of textarea, exactly as in Modelo.png */}
-          <div className="flex items-center justify-between pt-2 mt-1 border-t border-slate-800/40">
+          <div className="flex items-center justify-between pt-2 mt-1 border-t border-slate-200 dark:border-slate-800/40">
             <div className="flex items-center gap-1 sm:gap-2">
               <button
                 type="button"
                 onClick={() => showToast('Subida de archivos temporalmente no requerida', 'info')}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 title="Adjuntar archivo"
               >
                 <Paperclip className="w-4 h-4" />
@@ -107,7 +107,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               <button
                 type="button"
                 onClick={() => handleInsertEmoji('😊')}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 title="Emojis"
               >
                 <Smile className="w-4 h-4" />
@@ -116,7 +116,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               <button
                 type="button"
                 onClick={handleInsertSnippet}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 title="Insertar bloque de código"
               >
                 <Code2 className="w-4 h-4" />

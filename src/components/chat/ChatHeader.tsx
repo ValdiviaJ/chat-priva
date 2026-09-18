@@ -48,12 +48,12 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   })();
 
   return (
-    <header className="h-16 px-4 sm:px-6 bg-[#080d1a] border-b border-[#1a2333] flex items-center justify-between shrink-0 sticky top-0 z-30">
+    <header className="h-16 px-4 sm:px-6 bg-white dark:bg-[#080d1a] border-b border-slate-200 dark:border-[#1a2333] flex items-center justify-between shrink-0 sticky top-0 z-30 transition-colors">
       {/* Left: Mobile sidebar toggle + Title & Activity */}
       <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onToggleSidebar}
-          className="lg:hidden p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+          className="lg:hidden p-2 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
           aria-label="Abrir conversaciones"
         >
           <Menu className="w-5 h-5" />
@@ -72,18 +72,18 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                     if (e.key === 'Escape') setIsEditingTitle(false);
                   }}
                   autoFocus
-                  className="bg-[#151f32] text-white text-sm font-semibold px-2 py-0.5 rounded border border-blue-500 focus:outline-none"
+                  className="bg-slate-100 dark:bg-[#151f32] text-slate-900 dark:text-white text-sm font-semibold px-2 py-0.5 rounded border border-blue-500 focus:outline-none"
                 />
                 <button
                   onClick={handleSaveTitle}
-                  className="px-2 py-0.5 bg-blue-600 text-white rounded text-xs"
+                  className="px-2 py-0.5 bg-blue-600 text-white rounded text-xs cursor-pointer"
                 >
                   OK
                 </button>
               </div>
             ) : (
               <div className="flex items-center gap-2 group">
-                <h1 className="font-semibold text-base sm:text-lg text-white truncate">
+                <h1 className="font-semibold text-base sm:text-lg text-slate-900 dark:text-white truncate">
                   {chatTitle || `Sala ${room.code}`}
                 </h1>
                 <button
@@ -91,7 +91,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                     setTempTitle(chatTitle);
                     setIsEditingTitle(true);
                   }}
-                  className="opacity-60 hover:opacity-100 text-slate-400 hover:text-white transition-opacity"
+                  className="opacity-60 hover:opacity-100 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-opacity cursor-pointer"
                   title="Editar nombre"
                 >
                   <Pencil className="w-3.5 h-3.5" />
@@ -100,20 +100,20 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             )}
 
             {connectionState === 'disconnected' ? (
-              <span title="Sin conexión" className="text-rose-400 flex items-center">
+              <span title="Sin conexión" className="text-rose-500 dark:text-rose-400 flex items-center">
                 <WifiOff className="w-3.5 h-3.5" />
               </span>
             ) : connectionState === 'connecting' ? (
-              <span title="Conectando..." className="text-amber-400 flex items-center">
+              <span title="Conectando..." className="text-amber-500 dark:text-amber-400 flex items-center">
                 <Wifi className="w-3.5 h-3.5 animate-pulse" />
               </span>
             ) : null}
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-slate-400">
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
             <span
               className={`w-2 h-2 rounded-full ${
-                isOtherOnline ? 'bg-emerald-400' : 'bg-slate-500'
+                isOtherOnline ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-slate-400 dark:bg-slate-500'
               }`}
             />
             <span>{formattedActivity}</span>
@@ -125,14 +125,14 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       <div className="flex items-center gap-2">
         <button
           onClick={onToggleInfoPanel}
-          className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
+          className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/80 transition-colors cursor-pointer"
           title="Ver información del chat"
           aria-label="Información del chat"
         >
           <Info className="w-5 h-5" />
         </button>
 
-        <ThemeToggle className="bg-transparent border-0 text-slate-400 hover:text-white hover:bg-slate-800/80" />
+        <ThemeToggle className="bg-transparent border-0 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/80" />
       </div>
     </header>
   );

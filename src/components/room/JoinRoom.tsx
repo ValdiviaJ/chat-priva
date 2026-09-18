@@ -45,14 +45,14 @@ export const JoinRoom: React.FC = () => {
   };
 
   return (
-    <div className="bg-[#0c121e] border border-[#1a2333] rounded-2xl p-6 sm:p-8 shadow-xl transition-all duration-300">
+    <div className="bg-white dark:bg-[#0c121e] border border-slate-200 dark:border-[#1a2333] rounded-2xl p-6 sm:p-8 shadow-xl transition-all duration-300">
       {toast && <Toast message={toast.message} type={toast.type} />}
 
       <form onSubmit={handleJoin} className="space-y-5">
         <div className="space-y-1.5">
           <label
             htmlFor="join-code"
-            className="block text-xs font-semibold uppercase tracking-wider text-slate-400"
+            className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
           >
             Código de la sala
           </label>
@@ -65,10 +65,10 @@ export const JoinRoom: React.FC = () => {
             maxLength={8}
             autoComplete="off"
             spellCheck="false"
-            className="w-full px-4 py-3.5 bg-[#131b2c] border border-[#1f2c44] rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all font-mono text-lg tracking-widest uppercase"
+            className="w-full px-4 py-3.5 bg-slate-50 dark:bg-[#131b2c] border border-slate-200 dark:border-[#1f2c44] rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all font-mono text-lg tracking-widest uppercase"
             disabled={isLoading}
           />
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             La persona que creó la sala debió compartirte este código.
           </p>
         </div>
@@ -76,7 +76,7 @@ export const JoinRoom: React.FC = () => {
         <div className="space-y-1.5">
           <label
             htmlFor="join-nickname"
-            className="block text-xs font-semibold uppercase tracking-wider text-slate-400"
+            className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
           >
             Tu nombre o apodo (opcional)
           </label>
@@ -87,7 +87,7 @@ export const JoinRoom: React.FC = () => {
             placeholder="Ej. Alex"
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
-            className="w-full px-4 py-3 bg-[#131b2c] border border-[#1f2c44] rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+            className="w-full px-4 py-3 bg-slate-50 dark:bg-[#131b2c] border border-slate-200 dark:border-[#1f2c44] rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
             disabled={isLoading}
           />
         </div>

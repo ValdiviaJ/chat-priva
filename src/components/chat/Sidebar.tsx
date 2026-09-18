@@ -76,7 +76,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       <aside
-        className={`fixed lg:static top-0 left-0 bottom-0 z-50 w-72 sm:w-80 bg-[#0c121e] border-r border-[#1a2333] flex flex-col transition-transform duration-300 ease-in-out ${
+        className={`fixed lg:static top-0 left-0 bottom-0 z-50 w-72 sm:w-80 bg-white dark:bg-[#0c121e] border-r border-slate-200 dark:border-[#1a2333] flex flex-col transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -86,14 +86,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
               <MessageSquare className="w-5 h-5 fill-current" />
             </div>
-            <span className="font-bold text-lg tracking-tight text-white">
+            <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">
               QuickChat
             </span>
           </div>
 
           <button
             onClick={onClose}
-            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="lg:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
             aria-label="Cerrar barra lateral"
           >
             <X className="w-5 h-5" />
@@ -113,17 +113,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Conversations Label */}
         <div className="px-5 py-2">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Conversaciones
           </span>
         </div>
 
         {/* Conversation List */}
-        <div className="flex-1 overflow-y-auto px-3 space-y-1 scrollbar-thin scrollbar-thumb-slate-800">
+        <div className="flex-1 overflow-y-auto px-3 space-y-1 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
           {conversations.length === 0 ? (
             <div className="text-center py-8 px-4">
-              <p className="text-xs text-slate-400">No hay conversaciones guardadas.</p>
-              <p className="text-[11px] text-slate-400 mt-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400">No hay conversaciones guardadas.</p>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
                 Al unirte o crear un chat aparecerá aquí.
               </p>
             </div>
@@ -139,13 +139,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   }}
                   className={`w-full group text-left p-2.5 rounded-xl flex items-start gap-3 transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-[#182338] border border-[#273550] shadow-sm'
-                      : 'hover:bg-[#131b2c] border border-transparent'
+                      ? 'bg-blue-50 dark:bg-[#182338] border border-blue-200 dark:border-[#273550] shadow-xs'
+                      : 'hover:bg-slate-100 dark:hover:bg-[#131b2c] border border-transparent'
                   }`}
                 >
                   <div
                     className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
-                      isActive ? 'bg-blue-600/20 text-blue-400' : 'bg-[#192336] text-slate-400'
+                      isActive ? 'bg-blue-600/20 text-blue-600 dark:text-blue-400' : 'bg-slate-100 dark:bg-[#192336] text-slate-500 dark:text-slate-400'
                     }`}
                   >
                     {renderIcon(conv.icon)}
@@ -155,7 +155,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <div className="flex items-center justify-between gap-1 mb-0.5">
                       <h4
                         className={`text-sm font-medium truncate ${
-                          isActive ? 'text-white font-semibold' : 'text-slate-200 group-hover:text-white'
+                          isActive ? 'text-blue-600 dark:text-white font-semibold' : 'text-slate-700 group-hover:text-slate-900 dark:text-slate-200 dark:group-hover:text-white'
                         }`}
                       >
                         {conv.title || `Sala ${conv.code}`}
@@ -166,7 +166,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400 truncate leading-relaxed">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate leading-relaxed">
                       {conv.lastMessage || `Código: ${conv.code}`}
                     </p>
                   </div>
@@ -177,7 +177,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* User Profile Footer */}
-        <div className="p-3.5 border-t border-[#1a2333] bg-[#0c121e]">
+        <div className="p-3.5 border-t border-slate-200 dark:border-[#1a2333] bg-white dark:bg-[#0c121e]">
           {isEditingName ? (
             <div className="flex items-center gap-2">
               <input
@@ -189,11 +189,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   if (e.key === 'Escape') setIsEditingName(false);
                 }}
                 autoFocus
-                className="flex-1 bg-[#151f32] text-xs text-white px-2.5 py-1.5 rounded-lg border border-blue-500 focus:outline-none"
+                className="flex-1 bg-slate-100 dark:bg-[#151f32] text-xs text-slate-900 dark:text-white px-2.5 py-1.5 rounded-lg border border-blue-500 focus:outline-none"
               />
               <button
                 onClick={handleSaveName}
-                className="px-2 py-1 bg-blue-600 text-white rounded text-xs"
+                className="px-2 py-1 bg-blue-600 text-white rounded text-xs cursor-pointer"
               >
                 OK
               </button>
@@ -205,15 +205,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => setIsEditingName(true)}
                 title="Clic para cambiar nombre"
               >
-                <div className="w-9 h-9 rounded-full bg-[#1c2c49] text-blue-300 font-semibold text-xs flex items-center justify-center shrink-0 border border-blue-500/30">
+                <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-[#1c2c49] text-blue-600 dark:text-blue-300 font-semibold text-xs flex items-center justify-center shrink-0 border border-blue-400/30">
                   {getInitials(userName)}
                 </div>
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-white truncate hover:underline flex items-center gap-1">
+                  <div className="text-sm font-medium text-slate-900 dark:text-white truncate hover:underline flex items-center gap-1">
                     {userName}
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 inline-block" />
                     <span>En línea</span>
                   </div>
                 </div>
@@ -221,7 +221,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <button
                 onClick={() => setIsEditingName(true)}
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                 title="Configuración de perfil"
               >
                 <Settings className="w-4 h-4" />
