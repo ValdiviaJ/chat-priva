@@ -77,15 +77,24 @@ export const CreateRoom: React.FC = () => {
   };
 
   return (
-    <div className="bg-white dark:bg-[#0c121e] border border-slate-200 dark:border-[#1a2333] rounded-2xl p-6 sm:p-8 shadow-xl transition-all duration-300">
+    <div className="bg-white/80 dark:bg-[#0c121e]/80 backdrop-blur-sm border border-slate-200/90 dark:border-slate-800/80 rounded-2xl p-6 sm:p-7 shadow-xs hover:border-slate-300 dark:hover:border-slate-700/80 transition-all duration-200">
       {toast && <Toast message={toast.message} type={toast.type} />}
 
       {!createdRoomCode ? (
-        <form onSubmit={handleCreate} className="space-y-5">
+        <form onSubmit={handleCreate} className="space-y-4">
+          <div className="flex items-center gap-2 pb-1 border-b border-slate-100 dark:border-slate-800/60">
+            <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center font-mono text-xs font-semibold">
+              01
+            </div>
+            <h2 className="text-sm font-semibold tracking-tight text-slate-900 dark:text-white">
+              Crear una sala
+            </h2>
+          </div>
+
           <div className="space-y-1.5">
             <label
               htmlFor="create-nickname"
-              className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
+              className="block text-xs font-medium text-slate-600 dark:text-slate-400"
             >
               Tu nombre o apodo (opcional)
             </label>
@@ -96,10 +105,10 @@ export const CreateRoom: React.FC = () => {
               placeholder="Ej. Alex (o dejar vacío para Anónimo)"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 dark:bg-[#131b2c] border border-slate-200 dark:border-[#1f2c44] rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-[#131b2c] border border-slate-200 dark:border-[#1f2c44] rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               disabled={isLoading}
             />
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-[11px] text-slate-500 dark:text-slate-500">
               Si lo dejas vacío, tu apodo visible será <strong>Anónimo</strong>.
             </p>
           </div>
@@ -107,59 +116,59 @@ export const CreateRoom: React.FC = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 py-3.5 px-5 bg-[#1e69ff] hover:bg-blue-600 active:scale-[0.99] text-white font-medium text-sm rounded-xl shadow-lg shadow-blue-600/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white font-medium text-sm rounded-xl transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs"
           >
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Generando sala segura...</span>
+                <span>Generando sala...</span>
               </>
             ) : (
               <>
                 <Sparkles className="w-4 h-4" />
-                <span>Crear Nueva Sala</span>
+                <span>Generar sala</span>
               </>
             )}
           </button>
         </form>
       ) : (
-        <div className="text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
-          <div className="inline-flex p-3 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-            <KeyRound className="w-7 h-7" />
-          </div>
-
-          <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
-              ¡Tu sala está lista!
+        <div className="space-y-4 animate-in fade-in duration-150">
+          <div className="flex items-center gap-2 pb-1 border-b border-slate-100 dark:border-slate-800/60">
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-mono text-xs font-semibold">
+              ✓
+            </div>
+            <h3 className="text-sm font-semibold tracking-tight text-slate-900 dark:text-white">
+              Sala lista para compartir
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Comparte el código o el enlace con la persona con quien deseas chatear:
-            </p>
           </div>
 
-          <div className="flex items-center justify-center gap-2 p-3.5 bg-slate-50 dark:bg-[#131b2c] border border-slate-200 dark:border-[#1f2c44] rounded-xl">
-            <span className="font-mono font-bold text-2xl tracking-widest text-blue-600 dark:text-blue-400 select-all">
+          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            Comparte este código con la persona invitada para comenzar a hablar:
+          </p>
+
+          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 dark:bg-[#131b2c] border border-slate-200 dark:border-[#1f2c44] rounded-xl">
+            <span className="font-mono font-bold text-xl tracking-wider text-blue-600 dark:text-blue-400 select-all">
               {createdRoomCode}
             </span>
             <button
               onClick={copyCode}
               type="button"
-              className="p-2 hover:bg-slate-200 dark:hover:bg-[#1c2840] rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
               title="Copiar código"
             >
               {copiedCode ? (
-                <Check className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
+                <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
               ) : (
-                <Copy className="w-5 h-5" />
+                <Copy className="w-4 h-4" />
               )}
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 pt-1">
             <button
               onClick={copyLink}
               type="button"
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-[#131b2c] dark:hover:bg-[#1a253c] border border-slate-200 dark:border-[#1f2c44] text-slate-700 dark:text-slate-200 font-medium text-xs rounded-xl transition-all cursor-pointer"
+              className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-[#131b2c] dark:hover:bg-[#1a253c] border border-slate-200 dark:border-[#1f2c44] text-slate-700 dark:text-slate-300 font-medium text-xs rounded-xl transition-all cursor-pointer"
             >
               {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />}
               <span>Copiar enlace</span>
@@ -168,9 +177,9 @@ export const CreateRoom: React.FC = () => {
             <button
               onClick={enterChat}
               type="button"
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-[#1e69ff] hover:bg-blue-600 text-white font-medium text-xs rounded-xl shadow-lg shadow-blue-600/25 transition-all cursor-pointer"
+              className="flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-xl transition-all cursor-pointer"
             >
-              <span>Entrar al chat</span>
+              <span>Entrar</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
