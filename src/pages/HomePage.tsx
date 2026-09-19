@@ -3,6 +3,7 @@ import { CreateRoom } from '../components/room/CreateRoom';
 import { JoinRoom } from '../components/room/JoinRoom';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { MessageSquare, ShieldCheck, Zap, Lock } from 'lucide-react';
+import { InstallPwaButton } from '../components/common/InstallPwaButton';
 
 export const HomePage: React.FC = () => {
   return (
@@ -17,7 +18,10 @@ export const HomePage: React.FC = () => {
             QuickChat
           </span>
         </div>
-        <ThemeToggle className="bg-transparent border-0 text-slate-500 hover:text-slate-900 hover:bg-slate-200/70 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/80" />
+        <div className="flex items-center gap-2">
+          <InstallPwaButton />
+          <ThemeToggle className="bg-transparent border-0 text-slate-500 hover:text-slate-900 hover:bg-slate-200/70 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/80" />
+        </div>
       </header>
 
       {/* Main Focus Area */}

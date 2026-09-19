@@ -17,6 +17,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { ThemeToggle } from '../common/ThemeToggle';
+import { InstallPwaButton } from '../common/InstallPwaButton';
 import type { Room, Participant } from '../../types/database';
 import { soundManager } from '../../utils/sound';
 
@@ -236,6 +237,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           <Info className="w-5 h-5" />
         </button>
 
+        <InstallPwaButton className="hidden sm:inline-flex" />
         <ThemeToggle className="bg-transparent border-0 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/80" />
       </div>
     </header>
