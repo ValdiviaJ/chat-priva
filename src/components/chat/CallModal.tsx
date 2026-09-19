@@ -53,6 +53,18 @@ export const CallModal: React.FC<CallModalProps> = ({
     }
   }, [callState]);
 
+  // Ensure remote and local streams are playing when video modal mounts
+  React.useEffect(() => {
+    if (callType === 'video' && callState === 'connected') {
+      if (remoteVideoRef.current && remoteVideoRef.current.srcObject) {
+        remoteVideoRef.current.play().catch(() => {});
+      }
+      if (localVideoRef.current && localVideoRef.current.srcObject) {
+        localVideoRef.current.play().catch(() => {});
+      }
+    }
+  }, [callState, callType, isMinimized, localVideoRef, remoteVideoRef]);
+
   if (callState === 'idle') return null;
 
   const formatDuration = (secs: number) => {
