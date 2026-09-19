@@ -192,6 +192,7 @@ export const ChatPage: React.FC = () => {
         />
 
         <MessageInput
+          roomId={room.id}
           onSendMessage={handleSendMessage}
           onTyping={setTyping}
           disabled={sending}

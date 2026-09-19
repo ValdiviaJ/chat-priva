@@ -1,8 +1,9 @@
 import React from 'react';
 import type { Message } from '../../types/database';
 import { formatMessageTime } from '../../utils/formatDate';
-import { Check, Bot, User } from 'lucide-react';
+import { Check, FileText, Download, ExternalLink } from 'lucide-react';
 import { getUserName } from '../../utils/clientId';
+import { parseFileAttachment, formatFileSize } from '../../services/storageService';
 
 interface MessageBubbleProps {
   message: Message;
@@ -12,6 +13,7 @@ interface MessageBubbleProps {
 
 export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message, isMe, otherUsername }) => {
   const formattedTime = formatMessageTime(message.created_at);
+  const attachment = parseFileAttachment(message.content);
 
   const getMyInitials = () => {
     const name = getUserName() || 'Anónimo';
@@ -30,6 +32,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message
     }
     return name.slice(0, 2).toUpperCase();
   };
+
+  const isImage = attachment && attachment.mimeType.startsWith('image/');
 
   return (
     <div
@@ -54,9 +58,65 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message
             : 'bg-white dark:bg-[#182336] text-slate-800 dark:text-slate-100 rounded-bl-sm border border-slate-200 dark:border-[#23334d]/60 shadow-xs'
         }`}
       >
-        <p className="whitespace-pre-wrap select-text selection:bg-blue-300 selection:text-slate-900 leading-relaxed text-[13.5px]">
-          {message.content}
-        </p>
+        {attachment ? (
+          isImage ? (
+            <div className="space-y-2">
+              <a
+                href={attachment.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block overflow-hidden rounded-xl group relative border border-black/10 dark:border-white/10"
+              >
+                <img
+                  src={attachment.url}
+                  alt={attachment.name}
+                  loading="lazy"
+                  className="max-h-72 w-full object-cover rounded-xl group-hover:opacity-95 transition-opacity"
+                />
+                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs gap-1 font-medium">
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Ver imagen completa</span>
+                </div>
+              </a>
+              <div className="flex items-center justify-between text-[11px] opacity-80 pt-0.5">
+                <span className="truncate max-w-[200px]">{attachment.name}</span>
+                <span>{formatFileSize(attachment.size)}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 p-1">
+              <div className={`p-2.5 rounded-xl shrink-0 ${isMe ? 'bg-blue-700/80 text-white' : 'bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400'}`}>
+                <FileText className="w-6 h-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-xs truncate max-w-[200px]" title={attachment.name}>
+                  {attachment.name}
+                </p>
+                <p className={`text-[11px] ${isMe ? 'text-blue-100/70' : 'text-slate-500 dark:text-slate-400'}`}>
+                  {formatFileSize(attachment.size)}
+                </p>
+              </div>
+              <a
+                href={attachment.url}
+                download={attachment.name}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`p-2 rounded-lg transition-colors cursor-pointer shrink-0 ${
+                  isMe
+                    ? 'hover:bg-blue-700 text-white'
+                    : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Descargar archivo"
+              >
+                <Download className="w-4 h-4" />
+              </a>
+            </div>
+          )
+        ) : (
+          <p className="whitespace-pre-wrap select-text selection:bg-blue-300 selection:text-slate-900 leading-relaxed text-[13.5px]">
+            {message.content}
+          </p>
+        )}
 
         <div
           className={`text-[11px] mt-1.5 flex items-center justify-end gap-1 select-none ${
