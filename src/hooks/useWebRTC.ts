@@ -19,6 +19,8 @@ const ICE_SERVERS: RTCConfiguration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun.cloudflare.com:3478' },
   ],
 };
 
@@ -34,13 +36,28 @@ export function useWebRTC(roomId: string | undefined) {
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const iceCandidateQueueRef = useRef<RTCIceCandidateInit[]>([]);
 
-  // Video element refs
+  // Video and audio element refs
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const clientId = getClientId();
   const myName = getUserName() || 'Anónimo';
+
+  // Attach remote stream to audio/video sinks
+  const attachRemoteStream = useCallback((stream: MediaStream) => {
+    remoteStreamRef.current = stream;
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = stream;
+      remoteVideoRef.current.play().catch(() => {});
+    }
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.srcObject = stream;
+      remoteAudioRef.current.play().catch(() => {});
+    }
+  }, []);
 
   // Cleanup helper
   const endCall = useCallback((notify = true) => {
@@ -60,6 +77,8 @@ export function useWebRTC(roomId: string | undefined) {
       pcRef.current.close();
       pcRef.current = null;
     }
+
+    iceCandidateQueueRef.current = [];
 
     if (notify && roomId) {
       supabase.channel(`presence_room_${roomId}`).send({
@@ -85,16 +104,16 @@ export function useWebRTC(roomId: string | undefined) {
     if (pcRef.current) {
       pcRef.current.close();
     }
+    iceCandidateQueueRef.current = [];
 
     const pc = new RTCPeerConnection(ICE_SERVERS);
     pcRef.current = pc;
 
-    // Handle remote stream
+    // Handle remote tracks
     pc.ontrack = (event) => {
       const [stream] = event.streams;
-      remoteStreamRef.current = stream;
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = stream;
+      if (stream) {
+        attachRemoteStream(stream);
       }
     };
 
@@ -116,7 +135,7 @@ export function useWebRTC(roomId: string | undefined) {
     };
 
     return pc;
-  }, [roomId, clientId, myName, callType]);
+  }, [roomId, clientId, myName, callType, attachRemoteStream]);
 
   // Start outgoing call
   const startCall = useCallback(
@@ -250,6 +269,21 @@ export function useWebRTC(roomId: string | undefined) {
   useEffect(() => {
     if (!roomId) return;
 
+    // Drain queued candidates once remoteDescription is set
+    const drainQueuedCandidates = async (pc: RTCPeerConnection) => {
+      if (!pc.remoteDescription) return;
+      while (iceCandidateQueueRef.current.length > 0) {
+        const candidate = iceCandidateQueueRef.current.shift();
+        if (candidate) {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          } catch (e) {
+            console.error('Error applying queued ICE candidate:', e);
+          }
+        }
+      }
+    };
+
     const channel = supabase
       .channel(`presence_room_${roomId}`)
       .on('broadcast', { event: 'call_signal' }, async ({ payload }: { payload: SignalPayload }) => {
@@ -284,6 +318,7 @@ export function useWebRTC(roomId: string | undefined) {
             const pc = createPeerConnection();
             if (payload.sdp) {
               await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+              await drainQueuedCandidates(pc);
             }
             break;
           }
@@ -291,6 +326,7 @@ export function useWebRTC(roomId: string | undefined) {
           case 'answer': {
             if (pcRef.current && payload.sdp) {
               await pcRef.current.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+              await drainQueuedCandidates(pcRef.current);
               setCallState('connected');
 
               // Start duration timer
@@ -303,11 +339,16 @@ export function useWebRTC(roomId: string | undefined) {
           }
 
           case 'candidate': {
-            if (pcRef.current && payload.candidate) {
-              try {
-                await pcRef.current.addIceCandidate(new RTCIceCandidate(payload.candidate));
-              } catch (e) {
-                console.error('Error adding received ice candidate:', e);
+            if (payload.candidate) {
+              if (pcRef.current && pcRef.current.remoteDescription) {
+                try {
+                  await pcRef.current.addIceCandidate(new RTCIceCandidate(payload.candidate));
+                } catch (e) {
+                  console.error('Error adding received ice candidate:', e);
+                }
+              } else {
+                // Queue until remoteDescription is set
+                iceCandidateQueueRef.current.push(payload.candidate);
               }
             }
             break;
@@ -336,6 +377,7 @@ export function useWebRTC(roomId: string | undefined) {
     isVideoDisabled,
     localVideoRef,
     remoteVideoRef,
+    remoteAudioRef,
     startCall,
     acceptCall,
     rejectCall,

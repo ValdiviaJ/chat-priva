@@ -20,6 +20,7 @@ interface CallModalProps {
   isVideoDisabled: boolean;
   localVideoRef: React.RefObject<HTMLVideoElement | null>;
   remoteVideoRef: React.RefObject<HTMLVideoElement | null>;
+  remoteAudioRef?: React.RefObject<HTMLAudioElement | null>;
   onAccept: () => void;
   onReject: () => void;
   onEnd: () => void;
@@ -36,6 +37,7 @@ export const CallModal: React.FC<CallModalProps> = ({
   isVideoDisabled,
   localVideoRef,
   remoteVideoRef,
+  remoteAudioRef,
   onAccept,
   onReject,
   onEnd,
@@ -56,6 +58,16 @@ export const CallModal: React.FC<CallModalProps> = ({
   if (isMinimized && callState === 'connected') {
     return (
       <div className="fixed bottom-20 right-4 z-50 w-72 bg-[#0d1524] border border-blue-500/40 rounded-2xl shadow-2xl overflow-hidden text-white flex flex-col p-3 transition-all animate-in slide-in-from-bottom-5">
+        {/* Hidden persistent remote audio for voice & video */}
+        {remoteAudioRef && (
+          <audio
+            ref={remoteAudioRef}
+            autoPlay
+            playsInline
+            className="hidden"
+          />
+        )}
+
         <div className="flex items-center justify-between pb-2 mb-1 border-b border-slate-800">
           <div className="flex items-center gap-2 min-w-0">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -142,6 +154,16 @@ export const CallModal: React.FC<CallModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="relative w-full max-w-lg bg-[#0d1524] border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col items-center justify-between min-h-[420px] p-6 text-white">
+        {/* Hidden persistent remote audio for voice & video */}
+        {remoteAudioRef && (
+          <audio
+            ref={remoteAudioRef}
+            autoPlay
+            playsInline
+            className="hidden"
+          />
+        )}
+
         {/* Top Header: Title / Timer / Minimize */}
         <div className="w-full flex items-start justify-between z-20 pt-1">
           <div className="w-8" />

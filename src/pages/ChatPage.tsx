@@ -87,6 +87,7 @@ export const ChatPage: React.FC = () => {
     isVideoDisabled,
     localVideoRef,
     remoteVideoRef,
+    remoteAudioRef,
     startCall,
     acceptCall,
     rejectCall,
@@ -464,6 +465,7 @@ export const ChatPage: React.FC = () => {
         isVideoDisabled={isVideoDisabled}
         localVideoRef={localVideoRef}
         remoteVideoRef={remoteVideoRef}
+        remoteAudioRef={remoteAudioRef}
         onAccept={acceptCall}
         onReject={rejectCall}
         onEnd={() => endCall(true)}
