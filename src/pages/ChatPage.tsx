@@ -1,13 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useRoom } from '../hooks/useRoom';
 import { useMessages } from '../hooks/useMessages';
 import { usePresence } from '../hooks/usePresence';
+import { useWebRTC } from '../hooks/useWebRTC';
 import { ChatHeader } from '../components/chat/ChatHeader';
 import { MessageList } from '../components/chat/MessageList';
 import { MessageInput } from '../components/chat/MessageInput';
 import { Sidebar } from '../components/chat/Sidebar';
 import { ChatInfoPanel } from '../components/chat/ChatInfoPanel';
+import { MessageSearchBar } from '../components/chat/MessageSearchBar';
+import { PinnedMessageBar } from '../components/chat/PinnedMessageBar';
+import { ImageLightbox } from '../components/chat/ImageLightbox';
+import { CallModal } from '../components/chat/CallModal';
 import { LoadingScreen } from '../components/common/LoadingScreen';
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
@@ -21,7 +26,8 @@ import {
   type SavedConversation,
 } from '../services/conversationStorage';
 import { supabase } from '../services/supabase';
-import type { QuotedMessage } from '../types/chatPayloads';
+import { parseMessageContent, type QuotedMessage } from '../types/chatPayloads';
+import type { FileAttachment } from '../services/storageService';
 
 export const ChatPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -29,13 +35,25 @@ export const ChatPage: React.FC = () => {
   const { showToast } = useToast();
 
   const { room, currentParticipant, loading: roomLoading, error: roomError, isFull } = useRoom(roomId);
-  const { messages, loading: messagesLoading, sending, sendMessage } = useMessages(room?.id);
+  const {
+    messages,
+    loading: messagesLoading,
+    sending,
+    sendMessage,
+    editMessage,
+    deleteMessage,
+  } = useMessages(room?.id);
+
   const {
     isOtherOnline,
     otherUsername,
     isOtherTyping,
     setTyping,
+    isOtherRecordingAudio,
+    setIsRecordingAudio,
     connectionState,
+    pinnedMessageId,
+    setPinnedMessage,
     reactions,
     toggleReaction,
     lastReadMessageId,
@@ -43,6 +61,23 @@ export const ChatPage: React.FC = () => {
     ephemeralSeconds,
     updateEphemeralSeconds,
   } = usePresence(room?.id);
+
+  const {
+    callState,
+    callType,
+    remoteName,
+    callDuration,
+    isAudioMuted,
+    isVideoDisabled,
+    localVideoRef,
+    remoteVideoRef,
+    startCall,
+    acceptCall,
+    rejectCall,
+    endCall,
+    toggleMuteAudio,
+    toggleVideo,
+  } = useWebRTC(room?.id);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [infoPanelOpen, setInfoPanelOpen] = useState(false);
@@ -52,6 +87,14 @@ export const ChatPage: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [replyingTo, setReplyingTo] = useState<QuotedMessage | null>(null);
+
+  // Search in chat state
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+
+  // Lightbox state
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   // Load conversations list from localStorage
   useEffect(() => {
@@ -65,7 +108,6 @@ export const ChatPage: React.FC = () => {
         (c) => c.code === room.code || c.id === room.id
       );
 
-      // Determine display title: custom renamed title > other user nickname > default "Anónimo"
       const title = existing?.title && existing.title !== 'Hola, ¿cómo estás?'
         ? existing.title
         : otherUsername || 'Anónimo';
@@ -88,6 +130,88 @@ export const ChatPage: React.FC = () => {
       setConversations(getSavedConversations());
     }
   }, [room, messages.length, otherUsername, isCustomTitle]);
+
+  // Global Ctrl+F / Cmd+F handler for in-chat search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Compute matched messages for search
+  const matchedMessageIds = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase();
+    return messages
+      .filter((m) => {
+        const parsed = parseMessageContent(m.content);
+        if (parsed.kind === 'text') return parsed.text.toLowerCase().includes(q);
+        if (parsed.kind === 'file') return parsed.file.name.toLowerCase().includes(q);
+        return false;
+      })
+      .map((m) => m.id);
+  }, [messages, searchQuery]);
+
+  const scrollToMessage = (msgId: string) => {
+    const el = document.getElementById(`msg-${msgId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('ring-2', 'ring-blue-400');
+      setTimeout(() => el.classList.remove('ring-2', 'ring-blue-400'), 1500);
+    }
+  };
+
+  const handleNextMatch = () => {
+    if (matchedMessageIds.length === 0) return;
+    const nextIdx = (currentMatchIndex + 1) % matchedMessageIds.length;
+    setCurrentMatchIndex(nextIdx);
+    scrollToMessage(matchedMessageIds[nextIdx]);
+  };
+
+  const handlePrevMatch = () => {
+    if (matchedMessageIds.length === 0) return;
+    const prevIdx = (currentMatchIndex - 1 + matchedMessageIds.length) % matchedMessageIds.length;
+    setCurrentMatchIndex(prevIdx);
+    scrollToMessage(matchedMessageIds[prevIdx]);
+  };
+
+  // Extract all images in chat for Lightbox gallery
+  const allImages = useMemo(() => {
+    const list: FileAttachment[] = [];
+    messages.forEach((m) => {
+      const parsed = parseMessageContent(m.content);
+      if (parsed.kind === 'file' && parsed.file.mimeType.startsWith('image/')) {
+        list.push(parsed.file);
+      } else if (
+        parsed.kind === 'reply' &&
+        parsed.innerPayload.kind === 'file' &&
+        parsed.innerPayload.file.mimeType.startsWith('image/')
+      ) {
+        list.push(parsed.innerPayload.file);
+      }
+    });
+    return list;
+  }, [messages]);
+
+  const handleImageClick = (file: FileAttachment) => {
+    const idx = allImages.findIndex((img) => img.url === file.url);
+    if (idx !== -1) {
+      setLightboxIndex(idx);
+    } else {
+      setLightboxIndex(0);
+    }
+  };
+
+  // Find pinned message object
+  const pinnedMessage = useMemo(() => {
+    if (!pinnedMessageId) return null;
+    return messages.find((m) => m.id === pinnedMessageId) || null;
+  }, [messages, pinnedMessageId]);
 
   const handleRename = (newTitle: string) => {
     setChatTitle(newTitle);
@@ -197,6 +321,36 @@ export const ChatPage: React.FC = () => {
           onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
           onToggleInfoPanel={() => setInfoPanelOpen((prev) => !prev)}
           ephemeralSeconds={ephemeralSeconds}
+          isOtherTyping={isOtherTyping}
+          isOtherRecordingAudio={isOtherRecordingAudio}
+          onToggleSearch={() => setIsSearchOpen((prev) => !prev)}
+          onStartVoiceCall={() => startCall('voice', otherUsername || 'Anónimo')}
+          onStartVideoCall={() => startCall('video', otherUsername || 'Anónimo')}
+        />
+
+        {/* Pinned Message Banner */}
+        <PinnedMessageBar
+          pinnedMessage={pinnedMessage}
+          onUnpin={() => setPinnedMessage(null)}
+          onScrollToMessage={scrollToMessage}
+        />
+
+        {/* Message Search Bar */}
+        <MessageSearchBar
+          isOpen={isSearchOpen}
+          onClose={() => {
+            setIsSearchOpen(false);
+            setSearchQuery('');
+          }}
+          searchQuery={searchQuery}
+          onSearchChange={(q) => {
+            setSearchQuery(q);
+            setCurrentMatchIndex(0);
+          }}
+          totalMatches={matchedMessageIds.length}
+          currentMatchIndex={currentMatchIndex}
+          onNextMatch={handleNextMatch}
+          onPrevMatch={handlePrevMatch}
         />
 
         <MessageList
@@ -211,6 +365,13 @@ export const ChatPage: React.FC = () => {
           sendReadReceipt={sendReadReceipt}
           isOtherOnline={isOtherOnline}
           ephemeralSeconds={ephemeralSeconds}
+          onEdit={editMessage}
+          onDelete={deleteMessage}
+          onPin={setPinnedMessage}
+          pinnedMessageId={pinnedMessageId}
+          onImageClick={handleImageClick}
+          searchQuery={searchQuery}
+          isOtherRecordingAudio={isOtherRecordingAudio}
         />
 
         <MessageInput
@@ -220,6 +381,7 @@ export const ChatPage: React.FC = () => {
           disabled={sending}
           replyingTo={replyingTo}
           onCancelReply={() => setReplyingTo(null)}
+          onRecordingChange={setIsRecordingAudio}
         />
       </div>
 
@@ -234,6 +396,32 @@ export const ChatPage: React.FC = () => {
         onClose={() => setInfoPanelOpen(false)}
         ephemeralSeconds={ephemeralSeconds}
         onUpdateEphemeralSeconds={updateEphemeralSeconds}
+      />
+
+      {/* Fullscreen Image Lightbox Gallery */}
+      <ImageLightbox
+        images={allImages}
+        currentIndex={lightboxIndex ?? 0}
+        isOpen={lightboxIndex !== null}
+        onClose={() => setLightboxIndex(null)}
+        onNavigate={setLightboxIndex}
+      />
+
+      {/* WebRTC Voice/Video Call Modal */}
+      <CallModal
+        callState={callState}
+        callType={callType}
+        remoteName={remoteName}
+        callDuration={callDuration}
+        isAudioMuted={isAudioMuted}
+        isVideoDisabled={isVideoDisabled}
+        localVideoRef={localVideoRef}
+        remoteVideoRef={remoteVideoRef}
+        onAccept={acceptCall}
+        onReject={rejectCall}
+        onEnd={() => endCall(true)}
+        onToggleMuteAudio={toggleMuteAudio}
+        onToggleVideo={toggleVideo}
       />
 
       {/* Delete Confirmation Modal */}
@@ -265,4 +453,3 @@ export const ChatPage: React.FC = () => {
     </div>
   );
 };
-

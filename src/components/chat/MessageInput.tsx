@@ -13,6 +13,7 @@ interface MessageInputProps {
   disabled?: boolean;
   replyingTo?: QuotedMessage | null;
   onCancelReply?: () => void;
+  onRecordingChange?: (isRecording: boolean) => void;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
@@ -22,6 +23,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   disabled = false,
   replyingTo,
   onCancelReply,
+  onRecordingChange,
 }) => {
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -363,6 +365,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                   return await onSendMessage(final);
                 }}
                 disabled={disabled || isSubmitting || isUploading}
+                onRecordingChange={onRecordingChange}
               />
             </div>
 

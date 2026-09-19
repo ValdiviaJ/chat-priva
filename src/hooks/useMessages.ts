@@ -57,6 +57,36 @@ export function useMessages(roomId: string | undefined) {
           });
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages', filter: 'room_id=eq.' + roomId },
+        (payload) => {
+          const updated = payload.new as Message;
+          setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'messages', filter: 'room_id=eq.' + roomId },
+        (payload) => {
+          const deletedId = (payload.old as any)?.id;
+          if (deletedId) {
+            setMessages((prev) => prev.filter((m) => m.id !== deletedId));
+          }
+        }
+      )
+      .on('broadcast', { event: 'delete_message' }, ({ payload }) => {
+        if (payload?.messageId) {
+          setMessages((prev) => prev.filter((m) => m.id !== payload.messageId));
+        }
+      })
+      .on('broadcast', { event: 'edit_message' }, ({ payload }) => {
+        if (payload?.messageId && payload?.newContent) {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === payload.messageId ? { ...m, content: payload.newContent } : m))
+          );
+        }
+      })
       .subscribe();
 
     return () => {
@@ -105,11 +135,74 @@ export function useMessages(roomId: string | undefined) {
     [roomId, sending]
   );
 
+  const editMessage = useCallback(
+    async (messageId: string, newContent: string): Promise<boolean> => {
+      const trimmed = newContent.trim();
+      if (!trimmed || !roomId) return false;
+
+      try {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === messageId ? { ...m, content: trimmed } : m))
+        );
+
+        const { error: editErr } = await (supabase.from('messages') as any)
+          .update({ content: trimmed })
+          .eq('id', messageId);
+
+        if (editErr) throw editErr;
+
+        // Broadcast to other participant
+        supabase.channel('messages-changes-' + roomId).send({
+          type: 'broadcast',
+          event: 'edit_message',
+          payload: { messageId, newContent: trimmed },
+        });
+
+        return true;
+      } catch (err) {
+        console.error('Error editing message:', err);
+        return false;
+      }
+    },
+    [roomId]
+  );
+
+  const deleteMessage = useCallback(
+    async (messageId: string): Promise<boolean> => {
+      if (!roomId) return false;
+
+      try {
+        setMessages((prev) => prev.filter((m) => m.id !== messageId));
+
+        const { error: delErr } = await (supabase.from('messages') as any)
+          .delete()
+          .eq('id', messageId);
+
+        if (delErr) throw delErr;
+
+        // Broadcast to other participant
+        supabase.channel('messages-changes-' + roomId).send({
+          type: 'broadcast',
+          event: 'delete_message',
+          payload: { messageId },
+        });
+
+        return true;
+      } catch (err) {
+        console.error('Error deleting message:', err);
+        return false;
+      }
+    },
+    [roomId]
+  );
+
   return {
     messages,
     loading,
     error,
     sending,
     sendMessage,
+    editMessage,
+    deleteMessage,
   };
 }

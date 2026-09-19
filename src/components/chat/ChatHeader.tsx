@@ -11,6 +11,9 @@ import {
   Volume2,
   VolumeX,
   Timer,
+  Search,
+  Phone,
+  Video,
 } from 'lucide-react';
 import { ThemeToggle } from '../common/ThemeToggle';
 import type { Room, Participant } from '../../types/database';
@@ -26,6 +29,11 @@ interface ChatHeaderProps {
   onToggleSidebar: () => void;
   onToggleInfoPanel: () => void;
   ephemeralSeconds?: number;
+  isOtherTyping?: boolean;
+  isOtherRecordingAudio?: boolean;
+  onToggleSearch?: () => void;
+  onStartVoiceCall?: () => void;
+  onStartVideoCall?: () => void;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -38,6 +46,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onToggleSidebar,
   onToggleInfoPanel,
   ephemeralSeconds = 0,
+  isOtherTyping = false,
+  isOtherRecordingAudio = false,
+  onToggleSearch,
+  onStartVoiceCall,
+  onStartVideoCall,
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(chatTitle);
@@ -51,6 +64,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   };
 
   const formattedActivity = (() => {
+    if (isOtherRecordingAudio) return 'Grabando nota de voz...';
+    if (isOtherTyping) return 'Escribiendo...';
     return isOtherOnline ? 'En línea' : 'Última actividad: reciente';
   })();
 
@@ -139,6 +154,47 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             <Timer className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Temporal</span>
           </div>
+        )}
+
+        {/* Search in chat */}
+        {onToggleSearch && (
+          <button
+            type="button"
+            onClick={onToggleSearch}
+            className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/80 transition-colors cursor-pointer"
+            title="Buscar en la conversación (Ctrl+F)"
+            aria-label="Buscar en el chat"
+          >
+            <Search className="w-5 h-5" />
+          </button>
+        )}
+
+        {/* Voice Call */}
+        {onStartVoiceCall && (
+          <button
+            type="button"
+            onClick={onStartVoiceCall}
+            disabled={!isOtherOnline}
+            className="p-2 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/30 transition-colors cursor-pointer disabled:opacity-30 disabled:hover:bg-transparent"
+            title={isOtherOnline ? 'Llamada de voz' : 'El otro usuario debe estar en línea para llamar'}
+            aria-label="Llamada de voz"
+          >
+            <Phone className="w-5 h-5" />
+          </button>
+        )}
+
+        {/* Video Call */}
+        {onStartVideoCall && (
+          <button
+            type="button"
+            onClick={onStartVideoCall}
+            disabled={!isOtherOnline}
+            className="p-2 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/30 transition-colors cursor-pointer disabled:opacity-30 disabled:hover:bg-transparent"
+            title={isOtherOnline ? 'Videollamada' : 'El otro usuario debe estar en línea para videollamada'}
+            aria-label="Videollamada"
+          >
+            <Video className="w-5 h-5" />
+          </button>
         )}
 
         <button

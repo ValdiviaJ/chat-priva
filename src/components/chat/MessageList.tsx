@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import type { Message, Participant } from '../../types/database';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
-import { ArrowDown, MessageSquare, Timer } from 'lucide-react';
+import { ArrowDown, MessageSquare, Timer, Mic } from 'lucide-react';
 import type { QuotedMessage } from '../../types/chatPayloads';
 import type { ReactionMap } from '../../hooks/usePresence';
 import { soundManager } from '../../utils/sound';
@@ -19,6 +19,13 @@ interface MessageListProps {
   sendReadReceipt?: (messageId: string) => void;
   isOtherOnline?: boolean;
   ephemeralSeconds?: number;
+  onEdit?: (messageId: string, newText: string) => Promise<boolean>;
+  onDelete?: (messageId: string) => Promise<boolean>;
+  onPin?: (messageId: string) => void;
+  pinnedMessageId?: string | null;
+  onImageClick?: (file: any) => void;
+  searchQuery?: string;
+  isOtherRecordingAudio?: boolean;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
@@ -33,6 +40,13 @@ export const MessageList: React.FC<MessageListProps> = ({
   sendReadReceipt,
   isOtherOnline = false,
   ephemeralSeconds = 0,
+  onEdit,
+  onDelete,
+  onPin,
+  pinnedMessageId,
+  onImageClick,
+  searchQuery = '',
+  isOtherRecordingAudio = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -188,10 +202,23 @@ export const MessageList: React.FC<MessageListProps> = ({
                     onToggleReaction={onToggleReaction}
                     isRead={isRead}
                     isOtherOnline={isOtherOnline}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onPin={onPin}
+                    isPinned={pinnedMessageId === msg.id}
+                    onImageClick={onImageClick}
+                    searchQuery={searchQuery}
                   />
                 );
               })}
-              {isOtherTyping && <TypingIndicator />}
+              {isOtherRecordingAudio ? (
+                <div className="flex items-center gap-2 py-2 px-3 text-xs text-rose-500 font-medium bg-rose-50/60 dark:bg-rose-950/20 rounded-xl max-w-xs animate-in fade-in duration-150">
+                  <Mic className="w-3.5 h-3.5 animate-pulse text-rose-500" />
+                  <span>{otherUsername || 'La otra persona'} está grabando audio...</span>
+                </div>
+              ) : (
+                isOtherTyping && <TypingIndicator />
+              )}
               <div ref={bottomRef} className="h-1 shrink-0" />
             </div>
           </div>

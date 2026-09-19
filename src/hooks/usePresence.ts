@@ -14,7 +14,12 @@ interface PresenceState {
   otherUsername: string | null;
   isOtherTyping: boolean;
   setTyping: (typing: boolean) => void;
+  isOtherRecordingAudio: boolean;
+  setIsRecordingAudio: (isRecording: boolean) => void;
   connectionState: 'connected' | 'connecting' | 'disconnected';
+  // Pinned message
+  pinnedMessageId: string | null;
+  setPinnedMessage: (messageId: string | null) => void;
   // Reactions
   reactions: ReactionMap;
   toggleReaction: (messageId: string, emoji: string) => void;
@@ -59,7 +64,21 @@ export function usePresence(roomId: string | undefined): PresenceState {
     }
   });
 
+  // Audio recording presence state
+  const [isOtherRecordingAudio, setIsOtherRecordingAudio] = useState(false);
+
+  // Pinned message state
+  const [pinnedMessageId, setPinnedMessageId] = useState<string | null>(() => {
+    if (!roomId) return null;
+    try {
+      return localStorage.getItem(`quickchat_pinned_${roomId}`) || null;
+    } catch {
+      return null;
+    }
+  });
+
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recordingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const channelRef = useRef<any>(null);
 
   const clientId = getClientId();
@@ -153,6 +172,28 @@ export function usePresence(roomId: string | undefined): PresenceState {
           setLastReadMessageId(payload.lastReadMessageId);
         }
       })
+      .on('broadcast', { event: 'recording_audio' }, ({ payload }) => {
+        if (payload?.senderClientId && payload.senderClientId !== clientId) {
+          setIsOtherRecordingAudio(Boolean(payload.isRecording));
+          if (recordingTimeoutRef.current) clearTimeout(recordingTimeoutRef.current);
+          if (payload.isRecording) {
+            recordingTimeoutRef.current = setTimeout(() => {
+              setIsOtherRecordingAudio(false);
+            }, 60000);
+          }
+        }
+      })
+      .on('broadcast', { event: 'pinned_message' }, ({ payload }) => {
+        const pId = payload?.messageId || null;
+        setPinnedMessageId(pId);
+        if (roomId) {
+          if (pId) {
+            localStorage.setItem(`quickchat_pinned_${roomId}`, pId);
+          } else {
+            localStorage.removeItem(`quickchat_pinned_${roomId}`);
+          }
+        }
+      })
       .on('broadcast', { event: 'ephemeral_settings' }, ({ payload }) => {
         if (typeof payload?.durationSeconds === 'number') {
           setEphemeralSeconds(payload.durationSeconds);
@@ -175,6 +216,7 @@ export function usePresence(roomId: string | undefined): PresenceState {
 
     return () => {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (recordingTimeoutRef.current) clearTimeout(recordingTimeoutRef.current);
       channel.untrack();
       supabase.removeChannel(channel);
       channelRef.current = null;
@@ -279,12 +321,56 @@ export function usePresence(roomId: string | undefined): PresenceState {
     [roomId, connectionState]
   );
 
+  const setIsRecordingAudio = useCallback(
+    (isRecording: boolean) => {
+      if (!channelRef.current || connectionState !== 'connected') return;
+
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'recording_audio',
+        payload: {
+          senderClientId: clientId,
+          isRecording,
+        },
+      });
+    },
+    [clientId, connectionState]
+  );
+
+  const setPinnedMessage = useCallback(
+    (messageId: string | null) => {
+      setPinnedMessageId(messageId);
+      if (roomId) {
+        if (messageId) {
+          localStorage.setItem(`quickchat_pinned_${roomId}`, messageId);
+        } else {
+          localStorage.removeItem(`quickchat_pinned_${roomId}`);
+        }
+      }
+
+      if (channelRef.current && connectionState === 'connected') {
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'pinned_message',
+          payload: {
+            messageId,
+          },
+        });
+      }
+    },
+    [roomId, connectionState]
+  );
+
   return {
     isOtherOnline,
     otherUsername,
     isOtherTyping,
     setTyping,
+    isOtherRecordingAudio,
+    setIsRecordingAudio,
     connectionState,
+    pinnedMessageId,
+    setPinnedMessage,
     reactions,
     toggleReaction,
     lastReadMessageId,

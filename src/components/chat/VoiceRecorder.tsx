@@ -7,12 +7,14 @@ interface VoiceRecorderProps {
   roomId: string;
   onSendVoice: (voicePayload: string) => Promise<boolean>;
   disabled?: boolean;
+  onRecordingChange?: (isRecording: boolean) => void;
 }
 
 export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   roomId,
   onSendVoice,
   disabled = false,
+  onRecordingChange,
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
@@ -72,6 +74,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       recorder.start(100);
       setIsRecording(true);
       setRecordSeconds(0);
+      onRecordingChange?.(true);
 
       timerRef.current = setInterval(() => {
         setRecordSeconds((prev) => prev + 1);
@@ -80,6 +83,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       console.error('Error starting recording:', err);
       showToast('Permiso de micrófono denegado o no disponible', 'error');
       cleanupStream();
+      onRecordingChange?.(false);
     }
   };
 
@@ -92,6 +96,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     setIsRecording(false);
     setRecordSeconds(0);
     audioChunksRef.current = [];
+    onRecordingChange?.(false);
   };
 
   const finishAndSend = async () => {
@@ -102,6 +107,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
     setIsUploading(true);
     setIsRecording(false);
+    onRecordingChange?.(false);
 
     mediaRecorderRef.current.onstop = async () => {
       cleanupStream();

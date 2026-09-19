@@ -1,9 +1,22 @@
 import React, { useState } from 'react';
 import type { Message } from '../../types/database';
 import { formatMessageTime } from '../../utils/formatDate';
-import { Check, CheckCheck, FileText, Download, ExternalLink, Reply, Smile } from 'lucide-react';
+import {
+  Check,
+  CheckCheck,
+  FileText,
+  Download,
+  ExternalLink,
+  Reply,
+  Smile,
+  Pencil,
+  Trash2,
+  Copy,
+  Pin,
+  X,
+} from 'lucide-react';
 import { getUserName } from '../../utils/clientId';
-import { formatFileSize } from '../../services/storageService';
+import { formatFileSize, type FileAttachment } from '../../services/storageService';
 import { parseMessageContent, type QuotedMessage, type ParsedPayload } from '../../types/chatPayloads';
 import { VoiceMessagePlayer } from './VoiceMessagePlayer';
 
@@ -17,6 +30,12 @@ interface MessageBubbleProps {
   onToggleReaction?: (messageId: string, emoji: string) => void;
   isRead?: boolean;
   isOtherOnline?: boolean;
+  onEdit?: (messageId: string, newText: string) => Promise<boolean>;
+  onDelete?: (messageId: string) => Promise<boolean>;
+  onPin?: (messageId: string) => void;
+  isPinned?: boolean;
+  onImageClick?: (file: FileAttachment) => void;
+  searchQuery?: string;
 }
 
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '🔥', '😮', '😢'];
@@ -31,8 +50,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
   onToggleReaction,
   isRead = false,
   isOtherOnline = false,
+  onEdit,
+  onDelete,
+  onPin,
+  isPinned = false,
+  onImageClick,
+  searchQuery = '',
 }) => {
   const [showReactionMenu, setShowReactionMenu] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState('');
+  const [isCopied, setIsCopied] = useState(false);
+
   const formattedTime = formatMessageTime(message.created_at);
   const myName = getUserName() || 'Tú';
 
@@ -65,7 +94,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
     activePayload = activePayload.innerPayload;
   }
 
-  // Text summary for replying to THIS message
+  // Text summary for replying or copying
   const getMessageSummary = (): string => {
     if (activePayload.kind === 'file') {
       return activePayload.file.mimeType.startsWith('image/')
@@ -88,6 +117,29 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
     }
   };
 
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(getMessageSummary());
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 1800);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleStartEdit = () => {
+    if (activePayload.kind === 'text') {
+      setEditText(activePayload.text);
+      setIsEditing(true);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editText.trim() || !onEdit) return;
+    await onEdit(message.id, editText.trim());
+    setIsEditing(false);
+  };
+
   const scrollToQuotedMessage = (id: string) => {
     const target = document.getElementById(`msg-${id}`);
     if (target) {
@@ -97,6 +149,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
         target.classList.remove('ring-2', 'ring-blue-400');
       }, 1500);
     }
+  };
+
+  const renderHighlightedText = (text: string) => {
+    if (!searchQuery || !searchQuery.trim()) return text;
+    const q = searchQuery.trim();
+    const parts = text.split(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
+    return parts.map((part, i) =>
+      part.toLowerCase() === q.toLowerCase() ? (
+        <mark key={i} className="bg-amber-300 dark:bg-amber-400 text-slate-900 rounded-xs px-0.5 font-medium">
+          {part}
+        </mark>
+      ) : (
+        part
+      )
+    );
   };
 
   // Reactions active entries
@@ -119,25 +186,77 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
         </div>
       )}
 
-      {/* Floating Action Bar on hover (Reply + Quick Reactions) */}
+      {/* Floating Action Bar on hover */}
       <div
         className={`absolute -top-7 ${
           isMe ? 'right-10' : 'left-10'
         } z-30 hidden group-hover:flex items-center gap-1 bg-white dark:bg-[#152033] border border-slate-200 dark:border-[#23334d] rounded-full px-2 py-0.5 shadow-md text-xs transition-opacity duration-150`}
       >
+        {/* Reply */}
         <button
           type="button"
           onClick={handleReplyClick}
           className="p-1 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors cursor-pointer"
-          title="Responder mensaje"
+          title="Responder"
         >
           <Reply className="w-3.5 h-3.5" />
         </button>
 
+        {/* Copy Text */}
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="p-1 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors cursor-pointer"
+          title="Copiar texto"
+        >
+          {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+        </button>
+
+        {/* Pin Message */}
+        {onPin && (
+          <button
+            type="button"
+            onClick={() => onPin(message.id)}
+            className={`p-1 transition-colors cursor-pointer ${
+              isPinned
+                ? 'text-amber-500'
+                : 'text-slate-500 hover:text-amber-500 dark:text-slate-400 dark:hover:text-amber-400'
+            }`}
+            title={isPinned ? 'Desfijar' : 'Fijar mensaje'}
+          >
+            <Pin className="w-3.5 h-3.5" />
+          </button>
+        )}
+
+        {/* Edit Message (if my text message) */}
+        {isMe && activePayload.kind === 'text' && onEdit && (
+          <button
+            type="button"
+            onClick={handleStartEdit}
+            className="p-1 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors cursor-pointer"
+            title="Editar mensaje"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+        )}
+
+        {/* Delete Message (if my message) */}
+        {isMe && onDelete && (
+          <button
+            type="button"
+            onClick={() => onDelete(message.id)}
+            className="p-1 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 transition-colors cursor-pointer"
+            title="Eliminar mensaje"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        )}
+
         <div className="h-3 w-[1px] bg-slate-200 dark:bg-slate-700 mx-0.5" />
 
+        {/* Quick Reactions */}
         <div className="flex items-center gap-0.5">
-          {QUICK_EMOJIS.slice(0, 4).map((emoji) => (
+          {QUICK_EMOJIS.slice(0, 3).map((emoji) => (
             <button
               key={emoji}
               type="button"
@@ -157,7 +276,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
           </button>
         </div>
 
-        {/* Reaction Popover for all quick emojis */}
+        {/* Reaction Popover */}
         {showReactionMenu && (
           <div className="absolute top-8 left-0 flex items-center gap-1 bg-white dark:bg-[#162235] border border-slate-200 dark:border-slate-700 rounded-full p-1.5 shadow-lg z-40">
             {QUICK_EMOJIS.map((emoji) => (
@@ -182,8 +301,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
           isMe
             ? 'bg-[#1e69ff] text-white rounded-br-sm shadow-blue-500/10'
             : 'bg-white dark:bg-[#182336] text-slate-800 dark:text-slate-100 rounded-bl-sm border border-slate-200 dark:border-[#23334d]/60 shadow-xs'
-        }`}
+        } ${isPinned ? 'ring-2 ring-amber-400/80 shadow-amber-400/10' : ''}`}
       >
+        {/* Pinned Tag if pinned */}
+        {isPinned && (
+          <div className="flex items-center gap-1 text-[10px] font-semibold text-amber-300 mb-1">
+            <Pin className="w-3 h-3 rotate-45" />
+            <span>Mensaje fijado</span>
+          </div>
+        )}
+
         {/* Quoted Message preview inside bubble */}
         {replyData && (
           <div
@@ -209,11 +336,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
         {activePayload.kind === 'file' ? (
           activePayload.file.mimeType.startsWith('image/') ? (
             <div className="space-y-2">
-              <a
-                href={activePayload.file.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block overflow-hidden rounded-xl group relative border border-black/10 dark:border-white/10"
+              <div
+                onClick={() => onImageClick?.(activePayload.kind === 'file' ? activePayload.file : (null as any))}
+                className="block overflow-hidden rounded-xl group relative border border-black/10 dark:border-white/10 cursor-pointer"
               >
                 <img
                   src={activePayload.file.url}
@@ -226,7 +351,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
                   <ExternalLink className="w-4 h-4" />
                   <span>Ver imagen completa</span>
                 </div>
-              </a>
+              </div>
               <div className="flex items-center justify-between text-[11px] opacity-80 pt-0.5">
                 <span className="truncate max-w-[200px]">{activePayload.file.name}</span>
                 <span>{formatFileSize(activePayload.file.size)}</span>
@@ -273,9 +398,43 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
             duration={activePayload.audio.duration}
             isMe={isMe}
           />
+        ) : isEditing ? (
+          /* Inline Editing Box */
+          <div className="space-y-2 py-1">
+            <textarea
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSaveEdit();
+                }
+                if (e.key === 'Escape') setIsEditing(false);
+              }}
+              autoFocus
+              rows={2}
+              className="w-full bg-white/10 text-white rounded-xl p-2 text-xs focus:outline-none focus:ring-1 focus:ring-white/50 resize-none"
+            />
+            <div className="flex items-center justify-end gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="px-2.5 py-1 rounded-lg bg-black/20 hover:bg-black/30 text-white cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEdit}
+                className="px-2.5 py-1 rounded-lg bg-white text-blue-600 font-semibold cursor-pointer"
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
         ) : (
           <p className="whitespace-pre-wrap select-text selection:bg-blue-300 selection:text-slate-900 leading-relaxed text-[13.5px]">
-            {activePayload.kind === 'text' ? activePayload.text : ''}
+            {renderHighlightedText(activePayload.text)}
           </p>
         )}
 
@@ -289,13 +448,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
           {isMe && (
             <span title={isRead ? 'Leído' : isOtherOnline ? 'Entregado' : 'Enviado'}>
               {isRead ? (
-                // Double Blue Check (Leído)
                 <CheckCheck className="w-4 h-4 inline text-sky-300 dark:text-sky-300 drop-shadow-xs" />
               ) : isOtherOnline ? (
-                // Double Light Check (Entregado)
                 <CheckCheck className="w-4 h-4 inline text-blue-200/90" />
               ) : (
-                // Single Check (Enviado)
                 <Check className="w-3.5 h-3.5 inline text-blue-200/75" />
               )}
             </span>
