@@ -87,7 +87,8 @@ export const MessageList: React.FC<MessageListProps> = ({
             </p>
           </div>
         ) : (
-          <div className="flex flex-col justify-end min-h-full max-w-4xl w-full mx-auto">
+          <div className="flex flex-col min-h-full justify-end max-w-4xl w-full mx-auto space-y-1">
+            <div className="flex-1" />
             {messages.map((msg) => (
               <MessageBubble
                 key={msg.id}
@@ -97,7 +98,7 @@ export const MessageList: React.FC<MessageListProps> = ({
               />
             ))}
             {isOtherTyping && <TypingIndicator />}
-            <div ref={bottomRef} className="h-1" />
+            <div ref={bottomRef} className="h-1 shrink-0" />
           </div>
         )}
       </div>

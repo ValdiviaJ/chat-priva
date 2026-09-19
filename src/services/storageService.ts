@@ -44,12 +44,14 @@ export async function uploadChatFile(roomId: string, file: File): Promise<FileAt
 }
 
 export function parseFileAttachment(content: string): FileAttachment | null {
-  if (!content || !content.startsWith('{"type":"file"')) {
+  if (!content) return null;
+  const trimmed = content.trim();
+  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) {
     return null;
   }
   try {
-    const parsed = JSON.parse(content);
-    if (parsed && parsed.type === 'file' && parsed.url && parsed.name) {
+    const parsed = JSON.parse(trimmed);
+    if (parsed && parsed.type === 'file' && typeof parsed.url === 'string' && typeof parsed.name === 'string') {
       return parsed as FileAttachment;
     }
   } catch {
