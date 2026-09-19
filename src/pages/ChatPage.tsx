@@ -286,8 +286,8 @@ export const ChatPage: React.FC = () => {
     }
   };
 
-  if (roomLoading || (messagesLoading && !roomError)) {
-    return <LoadingScreen message="Conectando a QuickChat..." />;
+  if (roomLoading || (!e2eeKey && !roomError) || (messagesLoading && !roomError)) {
+    return <LoadingScreen message="Conectando y descifrando sala segura..." />;
   }
 
   if (isFull) {
