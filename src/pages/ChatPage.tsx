@@ -21,6 +21,7 @@ import {
   type SavedConversation,
 } from '../services/conversationStorage';
 import { supabase } from '../services/supabase';
+import type { QuotedMessage } from '../types/chatPayloads';
 
 export const ChatPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -29,7 +30,19 @@ export const ChatPage: React.FC = () => {
 
   const { room, currentParticipant, loading: roomLoading, error: roomError, isFull } = useRoom(roomId);
   const { messages, loading: messagesLoading, sending, sendMessage } = useMessages(room?.id);
-  const { isOtherOnline, otherUsername, isOtherTyping, setTyping, connectionState } = usePresence(room?.id);
+  const {
+    isOtherOnline,
+    otherUsername,
+    isOtherTyping,
+    setTyping,
+    connectionState,
+    reactions,
+    toggleReaction,
+    lastReadMessageId,
+    sendReadReceipt,
+    ephemeralSeconds,
+    updateEphemeralSeconds,
+  } = usePresence(room?.id);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [infoPanelOpen, setInfoPanelOpen] = useState(false);
@@ -38,6 +51,7 @@ export const ChatPage: React.FC = () => {
   const [isCustomTitle, setIsCustomTitle] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<QuotedMessage | null>(null);
 
   // Load conversations list from localStorage
   useEffect(() => {
@@ -182,6 +196,7 @@ export const ChatPage: React.FC = () => {
           onRename={handleRename}
           onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
           onToggleInfoPanel={() => setInfoPanelOpen((prev) => !prev)}
+          ephemeralSeconds={ephemeralSeconds}
         />
 
         <MessageList
@@ -189,6 +204,13 @@ export const ChatPage: React.FC = () => {
           currentParticipant={currentParticipant}
           isOtherTyping={isOtherTyping}
           otherUsername={otherUsername}
+          onReply={setReplyingTo}
+          reactions={reactions}
+          onToggleReaction={toggleReaction}
+          lastReadMessageId={lastReadMessageId}
+          sendReadReceipt={sendReadReceipt}
+          isOtherOnline={isOtherOnline}
+          ephemeralSeconds={ephemeralSeconds}
         />
 
         <MessageInput
@@ -196,6 +218,8 @@ export const ChatPage: React.FC = () => {
           onSendMessage={handleSendMessage}
           onTyping={setTyping}
           disabled={sending}
+          replyingTo={replyingTo}
+          onCancelReply={() => setReplyingTo(null)}
         />
       </div>
 
@@ -208,6 +232,8 @@ export const ChatPage: React.FC = () => {
         onDeleteRoom={() => setShowDeleteModal(true)}
         isOpen={infoPanelOpen}
         onClose={() => setInfoPanelOpen(false)}
+        ephemeralSeconds={ephemeralSeconds}
+        onUpdateEphemeralSeconds={updateEphemeralSeconds}
       />
 
       {/* Delete Confirmation Modal */}

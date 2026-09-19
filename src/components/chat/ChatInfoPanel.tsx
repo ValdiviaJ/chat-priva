@@ -9,6 +9,7 @@ import {
   Check,
   Share2,
   Lock,
+  Timer,
 } from 'lucide-react';
 import type { Room, Message } from '../../types/database';
 import { useToast } from '../common/Toast';
@@ -21,6 +22,8 @@ interface ChatInfoPanelProps {
   onDeleteRoom: () => void;
   isOpen: boolean;
   onClose: () => void;
+  ephemeralSeconds?: number;
+  onUpdateEphemeralSeconds?: (seconds: number) => void;
 }
 
 export const ChatInfoPanel: React.FC<ChatInfoPanelProps> = ({
@@ -31,6 +34,8 @@ export const ChatInfoPanel: React.FC<ChatInfoPanelProps> = ({
   onDeleteRoom,
   isOpen,
   onClose,
+  ephemeralSeconds = 0,
+  onUpdateEphemeralSeconds,
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(chatTitle);
@@ -222,6 +227,46 @@ export const ChatInfoPanel: React.FC<ChatInfoPanelProps> = ({
               Conversación privada 1 a 1. Solo dos personas pueden participar. Puedes editar el nombre
               de este chat o compartir el enlace de acceso.
             </p>
+          </div>
+
+          {/* Mensajes Temporales */}
+          <div>
+            <h5 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1.5">
+              <Timer className="w-3.5 h-3.5 text-amber-500" />
+              <span>Mensajes Temporales</span>
+            </h5>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2.5">
+              Los mensajes se ocultarán automáticamente tras el tiempo elegido.
+            </p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {[
+                { label: 'Desactivado', val: 0 },
+                { label: '5 minutos', val: 300 },
+                { label: '1 hora', val: 3600 },
+                { label: '24 horas', val: 86400 },
+              ].map((opt) => (
+                <button
+                  key={opt.val}
+                  type="button"
+                  onClick={() => {
+                    onUpdateEphemeralSeconds?.(opt.val);
+                    showToast(
+                      opt.val === 0
+                        ? 'Mensajes temporales desactivados'
+                        : `Mensajes temporales configurados a ${opt.label}`,
+                      'info'
+                    );
+                  }}
+                  className={`py-1.5 px-2 rounded-lg text-xs font-medium border transition-colors cursor-pointer text-center ${
+                    ephemeralSeconds === opt.val
+                      ? 'bg-amber-500/15 border-amber-500/40 text-amber-600 dark:text-amber-400 font-semibold'
+                      : 'bg-slate-100 dark:bg-[#131b2c] border-slate-200 dark:border-[#1e2a42] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Acciones */}

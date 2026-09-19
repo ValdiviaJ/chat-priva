@@ -8,9 +8,13 @@ import {
   Moon,
   Wifi,
   WifiOff,
+  Volume2,
+  VolumeX,
+  Timer,
 } from 'lucide-react';
 import { ThemeToggle } from '../common/ThemeToggle';
 import type { Room, Participant } from '../../types/database';
+import { soundManager } from '../../utils/sound';
 
 interface ChatHeaderProps {
   room: Room;
@@ -21,6 +25,7 @@ interface ChatHeaderProps {
   onRename: (newTitle: string) => void;
   onToggleSidebar: () => void;
   onToggleInfoPanel: () => void;
+  ephemeralSeconds?: number;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -32,9 +37,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onRename,
   onToggleSidebar,
   onToggleInfoPanel,
+  ephemeralSeconds = 0,
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(chatTitle);
+  const [isMuted, setIsMuted] = useState(() => soundManager.isMuted());
 
   const handleSaveTitle = () => {
     if (tempTitle.trim()) {
@@ -121,8 +128,36 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         </div>
       </div>
 
-      {/* Right: Info toggle + Theme toggle */}
-      <div className="flex items-center gap-2">
+      {/* Right: Audio toggle + Info toggle + Theme toggle */}
+      <div className="flex items-center gap-1 sm:gap-1.5">
+        {ephemeralSeconds > 0 && (
+          <div
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-medium cursor-pointer"
+            onClick={onToggleInfoPanel}
+            title="Mensajes temporales activos"
+          >
+            <Timer className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Temporal</span>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => {
+            const next = soundManager.toggleMute();
+            setIsMuted(next);
+          }}
+          className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/80 transition-colors cursor-pointer"
+          title={isMuted ? 'Activar sonido de mensajes' : 'Silenciar sonido de mensajes'}
+          aria-label={isMuted ? 'Activar sonido' : 'Silenciar sonido'}
+        >
+          {isMuted ? (
+            <VolumeX className="w-5 h-5 text-rose-500" />
+          ) : (
+            <Volume2 className="w-5 h-5" />
+          )}
+        </button>
+
         <button
           onClick={onToggleInfoPanel}
           className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/80 transition-colors cursor-pointer"

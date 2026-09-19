@@ -43,6 +43,39 @@ export async function uploadChatFile(roomId: string, file: File): Promise<FileAt
   };
 }
 
+export async function uploadAudioBlob(roomId: string, blob: Blob, duration: number) {
+  const ext = blob.type.includes('ogg') ? 'ogg' : blob.type.includes('mp4') ? 'mp4' : 'webm';
+  const filePath = `${roomId}/${Date.now()}_voice.${ext}`;
+
+  const { error } = await supabase.storage
+    .from(BUCKET_NAME)
+    .upload(filePath, blob, {
+      contentType: blob.type || 'audio/webm',
+      cacheControl: '3600',
+      upsert: false,
+    });
+
+  if (error) {
+    console.error('Error uploading voice note:', error);
+    throw new Error('No se pudo subir la nota de voz: ' + error.message);
+  }
+
+  const { data: publicUrlData } = supabase.storage
+    .from(BUCKET_NAME)
+    .getPublicUrl(filePath);
+
+  if (!publicUrlData?.publicUrl) {
+    throw new Error('No se pudo obtener la URL pública del audio');
+  }
+
+  return {
+    type: 'audio' as const,
+    url: publicUrlData.publicUrl,
+    duration,
+    size: blob.size,
+  };
+}
+
 export function parseFileAttachment(content: string): FileAttachment | null {
   if (!content) return null;
   const trimmed = content.trim();
