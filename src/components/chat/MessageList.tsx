@@ -36,22 +36,31 @@ export const MessageList: React.FC<MessageListProps> = ({
   };
 
   const scrollToBottom = (smooth = true) => {
-    if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({
-        behavior: smooth ? 'smooth' : 'auto',
+    if (!containerRef.current) return;
+    if (smooth) {
+      containerRef.current.scrollTo({
+        top: containerRef.current.scrollHeight,
+        behavior: 'smooth',
       });
+    } else {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
   };
 
   useLayoutEffect(() => {
     if (isFirstLoadRef.current && messages.length > 0) {
       scrollToBottom(false);
+      const timer = setTimeout(() => {
+        scrollToBottom(false);
+      }, 60);
       isFirstLoadRef.current = false;
+      return () => clearTimeout(timer);
     }
   }, [messages.length]);
 
   useEffect(() => {
     if (messages.length === 0) return;
+    if (isFirstLoadRef.current) return;
 
     const lastMessage = messages[messages.length - 1];
     const sentByMe = lastMessage?.sender_id === currentParticipant?.id;
@@ -67,16 +76,21 @@ export const MessageList: React.FC<MessageListProps> = ({
     }
   }, [isOtherTyping]);
 
+  const handleMediaLoad = () => {
+    if (checkIfNearBottom()) {
+      scrollToBottom(false);
+    }
+  };
+
   return (
     <div className="relative flex-1 min-h-0 bg-slate-50 dark:bg-[#080d1a] transition-colors overflow-hidden">
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        tabIndex={0}
-        className="h-full overflow-y-auto px-4 sm:px-8 py-6 flex flex-col focus:outline-none"
+        className="h-full overflow-y-auto overscroll-contain px-4 sm:px-8 py-6 focus:outline-none"
       >
         {messages.length === 0 ? (
-          <div className="m-auto flex flex-col items-center justify-center text-center p-6 text-slate-500 dark:text-slate-400 max-w-sm">
+          <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
             <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-[#131d2e] border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4">
               <MessageSquare className="w-7 h-7" />
             </div>
@@ -88,18 +102,20 @@ export const MessageList: React.FC<MessageListProps> = ({
             </p>
           </div>
         ) : (
-          <div className="flex flex-col min-h-full justify-end max-w-4xl w-full mx-auto space-y-1">
-            <div className="flex-1 min-h-4" />
-            {messages.map((msg) => (
-              <MessageBubble
-                key={msg.id}
-                message={msg}
-                isMe={msg.sender_id === currentParticipant.id}
-                otherUsername={otherUsername}
-              />
-            ))}
-            {isOtherTyping && <TypingIndicator />}
-            <div ref={bottomRef} className="h-1 shrink-0" />
+          <div className="flex flex-col min-h-full max-w-4xl w-full mx-auto">
+            <div className="mt-auto space-y-1 w-full">
+              {messages.map((msg) => (
+                <MessageBubble
+                  key={msg.id}
+                  message={msg}
+                  isMe={msg.sender_id === currentParticipant.id}
+                  otherUsername={otherUsername}
+                  onMediaLoad={handleMediaLoad}
+                />
+              ))}
+              {isOtherTyping && <TypingIndicator />}
+              <div ref={bottomRef} className="h-1 shrink-0" />
+            </div>
           </div>
         )}
       </div>

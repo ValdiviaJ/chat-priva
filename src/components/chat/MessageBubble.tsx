@@ -9,9 +9,10 @@ interface MessageBubbleProps {
   message: Message;
   isMe: boolean;
   otherUsername?: string | null;
+  onMediaLoad?: () => void;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message, isMe, otherUsername }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message, isMe, otherUsername, onMediaLoad }) => {
   const formattedTime = formatMessageTime(message.created_at);
   const attachment = parseFileAttachment(message.content);
 
@@ -71,6 +72,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({ message
                   src={attachment.url}
                   alt={attachment.name}
                   loading="lazy"
+                  onLoad={onMediaLoad}
                   className="max-h-72 w-full object-cover rounded-xl group-hover:opacity-95 transition-opacity"
                 />
                 <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs gap-1 font-medium">
