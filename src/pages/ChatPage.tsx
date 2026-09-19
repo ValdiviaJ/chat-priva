@@ -31,6 +31,7 @@ import type { FileAttachment } from '../services/storageService';
 import { triggerPanicMode } from '../utils/panicMode';
 import { requestNotificationPermission, showBrowserNotification } from '../utils/notifications';
 import { getClientId } from '../utils/clientId';
+import { deriveRoomKey } from '../utils/crypto';
 
 export const ChatPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -38,6 +39,17 @@ export const ChatPage: React.FC = () => {
   const { showToast } = useToast();
 
   const { room, currentParticipant, loading: roomLoading, error: roomError, isFull } = useRoom(roomId);
+  const [e2eeKey, setE2eeKey] = useState<CryptoKey | null>(null);
+
+  useEffect(() => {
+    if (room?.code) {
+      deriveRoomKey(room.code).then((key) => {
+        setE2eeKey(key);
+      }).catch((err) => {
+        console.error('Error deriving room E2EE key:', err);
+      });
+    }
+  }, [room?.code]);
 
   const {
     isOtherOnline,
@@ -55,8 +67,6 @@ export const ChatPage: React.FC = () => {
     sendReadReceipt,
     ephemeralSeconds,
     updateEphemeralSeconds,
-    sharedKey,
-    isE2EEReady,
   } = usePresence(room?.id);
 
   const {
@@ -66,7 +76,7 @@ export const ChatPage: React.FC = () => {
     sendMessage,
     editMessage,
     deleteMessage,
-  } = useMessages(room?.id, sharedKey);
+  } = useMessages(room?.id, e2eeKey);
 
   const {
     callState,
@@ -362,7 +372,7 @@ export const ChatPage: React.FC = () => {
           onToggleSearch={() => setIsSearchOpen((prev) => !prev)}
           onStartVoiceCall={() => startCall('voice', otherUsername || 'Anónimo')}
           onStartVideoCall={() => startCall('video', otherUsername || 'Anónimo')}
-          isE2EEReady={isE2EEReady}
+          isE2EEReady={Boolean(e2eeKey)}
         />
 
         {/* Pinned Message Banner */}

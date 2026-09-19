@@ -1,12 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../services/supabase';
 import { getClientId, getUserName } from '../utils/clientId';
-import {
-  generateE2EEKeyPair,
-  exportPublicKey,
-  importPublicKey,
-  deriveSharedKey,
-} from '../utils/crypto';
 
 export interface ReactionMap {
   // messageId -> emoji -> array of usernames
@@ -35,9 +29,6 @@ interface PresenceState {
   // Ephemeral messages (in seconds: 0 = off, 300 = 5m, 3600 = 1h, etc.)
   ephemeralSeconds: number;
   updateEphemeralSeconds: (seconds: number) => void;
-  // End-to-End Encryption
-  sharedKey: CryptoKey | null;
-  isE2EEReady: boolean;
 }
 
 export function usePresence(roomId: string | undefined): PresenceState {
@@ -89,8 +80,6 @@ export function usePresence(roomId: string | undefined): PresenceState {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recordingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const channelRef = useRef<any>(null);
-  const myKeyPairRef = useRef<CryptoKeyPair | null>(null);
-  const [sharedKey, setSharedKey] = useState<CryptoKey | null>(null);
 
   const clientId = getClientId();
   const myUsername = getUserName();
@@ -205,66 +194,19 @@ export function usePresence(roomId: string | undefined): PresenceState {
           }
         }
       })
-      .on('broadcast', { event: 'e2ee_key' }, async ({ payload }) => {
-        if (payload?.senderClientId && payload.senderClientId !== clientId && payload?.publicKey) {
-          try {
-            if (!myKeyPairRef.current) {
-              myKeyPairRef.current = await generateE2EEKeyPair();
-            }
-            const peerKey = await importPublicKey(payload.publicKey);
-            const derived = await deriveSharedKey(myKeyPairRef.current.privateKey, peerKey);
-            setSharedKey(derived);
-
-            // If peer requested a reply with our key
-            if (payload.replyRequested) {
-              const myPubB64 = await exportPublicKey(myKeyPairRef.current.publicKey);
-              channel.send({
-                type: 'broadcast',
-                event: 'e2ee_key',
-                payload: {
-                  senderClientId: clientId,
-                  publicKey: myPubB64,
-                  replyRequested: false,
-                },
-              });
-            }
-          } catch (e2eeErr) {
-            console.error('Error handling E2EE key exchange:', e2eeErr);
-          }
-        }
-      })
       .on('broadcast', { event: 'ephemeral_settings' }, ({ payload }) => {
         if (typeof payload?.durationSeconds === 'number') {
           setEphemeralSeconds(payload.durationSeconds);
           localStorage.setItem(`quickchat_ephemeral_${roomId}`, String(payload.durationSeconds));
         }
       })
-      .subscribe(async (status) => {
+      .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           setConnectionState('connected');
           channel.track({
             username: myUsername,
             online_at: new Date().toISOString(),
           });
-
-          // Generate E2EE keypair and announce public key
-          try {
-            if (!myKeyPairRef.current) {
-              myKeyPairRef.current = await generateE2EEKeyPair();
-            }
-            const pubB64 = await exportPublicKey(myKeyPairRef.current.publicKey);
-            channel.send({
-              type: 'broadcast',
-              event: 'e2ee_key',
-              payload: {
-                senderClientId: clientId,
-                publicKey: pubB64,
-                replyRequested: true,
-              },
-            });
-          } catch (e2eeErr) {
-            console.error('Error in initial E2EE key broadcast:', e2eeErr);
-          }
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           setConnectionState('disconnected');
         } else {
@@ -435,7 +377,5 @@ export function usePresence(roomId: string | undefined): PresenceState {
     sendReadReceipt,
     ephemeralSeconds,
     updateEphemeralSeconds,
-    sharedKey,
-    isE2EEReady: Boolean(sharedKey),
   };
 }

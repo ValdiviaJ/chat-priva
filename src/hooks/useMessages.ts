@@ -12,6 +12,29 @@ export function useMessages(roomId: string | undefined, sharedKey?: CryptoKey | 
 
   useEffect(() => {
     sharedKeyRef.current = sharedKey || null;
+    if (sharedKey) {
+      // If we have messages that are still encrypted, re-process them with the key
+      setMessages((prev) => {
+        if (prev.some((m) => isE2EEPayload(m.content))) {
+          Promise.all(
+            prev.map(async (m) => {
+              if (isE2EEPayload(m.content)) {
+                try {
+                  const dec = await decryptMessage(m.content, sharedKey);
+                  return { ...m, content: dec };
+                } catch {
+                  return m;
+                }
+              }
+              return m;
+            })
+          ).then((decryptedList) => {
+            setMessages(decryptedList);
+          });
+        }
+        return prev;
+      });
+    }
   }, [sharedKey]);
 
   // Helper to decrypt a message if it's E2EE

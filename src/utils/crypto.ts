@@ -1,61 +1,35 @@
 /**
- * Web Crypto API utilities for End-to-End Encryption (E2EE)
- * Using ECDH (P-256) for Key Exchange and AES-GCM (256-bit) for symmetric encryption.
+ * Web Crypto API utilities for Room-level End-to-End Encryption (E2EE)
+ * Using PBKDF2 to derive an AES-GCM (256-bit) key deterministically from the room code.
+ * This guarantees:
+ * 1. Supabase stores only encrypted ciphertexts (zero knowledge on the DB/server).
+ * 2. Anyone with the room URL/code can decrypt current and past messages in the room seamlessly.
+ * 3. Leaving and re-entering the room never loses message decryption capability.
  */
 
-// Generate an ephemeral ECDH keypair
-export async function generateE2EEKeyPair(): Promise<CryptoKeyPair> {
-  return await window.crypto.subtle.generateKey(
-    {
-      name: 'ECDH',
-      namedCurve: 'P-256',
-    },
-    true,
-    ['deriveKey', 'deriveBits']
+const E2EE_PREFIX = '🔒E2EE:';
+
+// Deterministic salt for the room code PBKDF2 derivation
+const SALT = new TextEncoder().encode('quickchat_e2ee_room_salt_v1');
+
+export async function deriveRoomKey(roomCode: string): Promise<CryptoKey> {
+  const enc = new TextEncoder();
+  const keyMaterial = await window.crypto.subtle.importKey(
+    'raw',
+    enc.encode(roomCode.trim().toUpperCase()),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveKey']
   );
-}
 
-// Export public key to base64 (spki)
-export async function exportPublicKey(key: CryptoKey): Promise<string> {
-  const exported = await window.crypto.subtle.exportKey('spki', key);
-  const bytes = new Uint8Array(exported);
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return window.btoa(binary);
-}
-
-// Import base64 public key from peer
-export async function importPublicKey(b64: string): Promise<CryptoKey> {
-  const binary = window.atob(b64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return await window.crypto.subtle.importKey(
-    'spki',
-    bytes.buffer,
-    {
-      name: 'ECDH',
-      namedCurve: 'P-256',
-    },
-    true,
-    []
-  );
-}
-
-// Derive a shared AES-GCM 256-bit key from our private key and peer's public key
-export async function deriveSharedKey(
-  privateKey: CryptoKey,
-  peerPublicKey: CryptoKey
-): Promise<CryptoKey> {
   return await window.crypto.subtle.deriveKey(
     {
-      name: 'ECDH',
-      public: peerPublicKey,
+      name: 'PBKDF2',
+      salt: SALT,
+      iterations: 100000,
+      hash: 'SHA-256',
     },
-    privateKey,
+    keyMaterial,
     {
       name: 'AES-GCM',
       length: 256,
@@ -64,8 +38,6 @@ export async function deriveSharedKey(
     ['encrypt', 'decrypt']
   );
 }
-
-const E2EE_PREFIX = '🔒E2EE:';
 
 // Check if a message is E2EE encrypted
 export function isE2EEPayload(text: string): boolean {
