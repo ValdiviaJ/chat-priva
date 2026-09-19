@@ -46,6 +46,13 @@ export const CallModal: React.FC<CallModalProps> = ({
 }) => {
   const [isMinimized, setIsMinimized] = useState(false);
 
+  // Reset minimized mode when call returns to idle
+  React.useEffect(() => {
+    if (callState === 'idle') {
+      setIsMinimized(false);
+    }
+  }, [callState]);
+
   if (callState === 'idle') return null;
 
   const formatDuration = (secs: number) => {

@@ -32,11 +32,24 @@ export function useWebRTC(roomId: string | undefined) {
   const [isVideoDisabled, setIsVideoDisabled] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
 
+  // Keep a ref of callState and callType to avoid stale closures in broadcast handlers
+  const callStateRef = useRef<CallState>('idle');
+  const callTypeRef = useRef<CallType>('voice');
+  const setCallStateSynced = useCallback((state: CallState) => {
+    callStateRef.current = state;
+    setCallState(state);
+  }, []);
+  const setCallTypeSynced = useCallback((type: CallType) => {
+    callTypeRef.current = type;
+    setCallType(type);
+  }, []);
+
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const iceCandidateQueueRef = useRef<RTCIceCandidateInit[]>([]);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Video and audio element refs
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -61,7 +74,10 @@ export function useWebRTC(roomId: string | undefined) {
 
   // Cleanup helper
   const endCall = useCallback((notify = true) => {
-    if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+    if (durationTimerRef.current) {
+      clearInterval(durationTimerRef.current);
+      durationTimerRef.current = null;
+    }
 
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => track.stop());
@@ -73,36 +89,51 @@ export function useWebRTC(roomId: string | undefined) {
       remoteStreamRef.current = null;
     }
 
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+    }
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null;
+    }
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.srcObject = null;
+    }
+
     if (pcRef.current) {
+      pcRef.current.onicecandidate = null;
+      pcRef.current.ontrack = null;
       pcRef.current.close();
       pcRef.current = null;
     }
 
     iceCandidateQueueRef.current = [];
 
-    if (notify && roomId) {
-      supabase.channel(`presence_room_${roomId}`).send({
+    if (notify && channelRef.current) {
+      channelRef.current.send({
         type: 'broadcast',
         event: 'call_signal',
         payload: {
           senderClientId: clientId,
           callerName: myName,
           type: 'end',
-          callType,
+          callType: callTypeRef.current,
         },
       });
     }
 
-    setCallState('idle');
+    setCallStateSynced('idle');
     setCallDuration(0);
     setIsAudioMuted(false);
     setIsVideoDisabled(false);
-  }, [roomId, clientId, myName, callType]);
+  }, [clientId, myName, setCallStateSynced]);
 
   // Setup PeerConnection
   const createPeerConnection = useCallback(() => {
     if (pcRef.current) {
+      pcRef.current.onicecandidate = null;
+      pcRef.current.ontrack = null;
       pcRef.current.close();
+      pcRef.current = null;
     }
     iceCandidateQueueRef.current = [];
 
@@ -119,15 +150,15 @@ export function useWebRTC(roomId: string | undefined) {
 
     // Handle ICE candidates
     pc.onicecandidate = (event) => {
-      if (event.candidate && roomId) {
-        supabase.channel(`presence_room_${roomId}`).send({
+      if (event.candidate && channelRef.current) {
+        channelRef.current.send({
           type: 'broadcast',
           event: 'call_signal',
           payload: {
             senderClientId: clientId,
             callerName: myName,
             type: 'candidate',
-            callType,
+            callType: callTypeRef.current,
             candidate: event.candidate.toJSON(),
           },
         });
@@ -135,17 +166,17 @@ export function useWebRTC(roomId: string | undefined) {
     };
 
     return pc;
-  }, [roomId, clientId, myName, callType, attachRemoteStream]);
+  }, [clientId, myName, attachRemoteStream]);
 
   // Start outgoing call
   const startCall = useCallback(
     async (type: CallType, targetName = 'Usuario') => {
-      if (!roomId || callState !== 'idle') return;
+      if (!roomId || callStateRef.current !== 'idle') return;
 
       try {
-        setCallType(type);
+        setCallTypeSynced(type);
         setRemoteName(targetName);
-        setCallState('calling');
+        setCallStateSynced('calling');
 
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: true,
@@ -163,35 +194,37 @@ export function useWebRTC(roomId: string | undefined) {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
 
-        supabase.channel(`presence_room_${roomId}`).send({
-          type: 'broadcast',
-          event: 'call_signal',
-          payload: {
-            senderClientId: clientId,
-            callerName: myName,
-            type: 'offer',
-            callType: type,
-            sdp: offer,
-          },
-        });
+        if (channelRef.current) {
+          channelRef.current.send({
+            type: 'broadcast',
+            event: 'call_signal',
+            payload: {
+              senderClientId: clientId,
+              callerName: myName,
+              type: 'offer',
+              callType: type,
+              sdp: offer,
+            },
+          });
+        }
       } catch (err) {
         console.error('Error starting WebRTC call:', err);
         endCall(false);
       }
     },
-    [roomId, callState, clientId, myName, createPeerConnection, endCall]
+    [roomId, clientId, myName, createPeerConnection, endCall, setCallStateSynced, setCallTypeSynced]
   );
 
   // Accept incoming call
   const acceptCall = useCallback(async () => {
-    if (!roomId || !pcRef.current || callState !== 'incoming') return;
+    if (!roomId || !pcRef.current || callStateRef.current !== 'incoming') return;
 
     try {
-      setCallState('connected');
+      setCallStateSynced('connected');
 
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
-        video: callType === 'video',
+        video: callTypeRef.current === 'video',
       });
       localStreamRef.current = stream;
 
@@ -211,39 +244,41 @@ export function useWebRTC(roomId: string | undefined) {
         setCallDuration((prev) => prev + 1);
       }, 1000);
 
-      supabase.channel(`presence_room_${roomId}`).send({
-        type: 'broadcast',
-        event: 'call_signal',
-        payload: {
-          senderClientId: clientId,
-          callerName: myName,
-          type: 'answer',
-          callType,
-          sdp: answer,
-        },
-      });
+      if (channelRef.current) {
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'call_signal',
+          payload: {
+            senderClientId: clientId,
+            callerName: myName,
+            type: 'answer',
+            callType: callTypeRef.current,
+            sdp: answer,
+          },
+        });
+      }
     } catch (err) {
       console.error('Error accepting call:', err);
       endCall();
     }
-  }, [roomId, callState, callType, clientId, myName, endCall]);
+  }, [roomId, clientId, myName, endCall, setCallStateSynced]);
 
   // Reject incoming call
   const rejectCall = useCallback(() => {
-    if (roomId) {
-      supabase.channel(`presence_room_${roomId}`).send({
+    if (channelRef.current) {
+      channelRef.current.send({
         type: 'broadcast',
         event: 'call_signal',
         payload: {
           senderClientId: clientId,
           callerName: myName,
           type: 'rejected',
-          callType,
+          callType: callTypeRef.current,
         },
       });
     }
     endCall(false);
-  }, [roomId, clientId, myName, callType, endCall]);
+  }, [clientId, myName, endCall]);
 
   // Toggle Mute Audio
   const toggleMuteAudio = useCallback(() => {
@@ -284,89 +319,94 @@ export function useWebRTC(roomId: string | undefined) {
       }
     };
 
-    const channel = supabase
-      .channel(`presence_room_${roomId}`)
-      .on('broadcast', { event: 'call_signal' }, async ({ payload }: { payload: SignalPayload }) => {
-        if (!payload || payload.senderClientId === clientId) return;
+    const channel = supabase.channel(`presence_room_${roomId}`);
+    channelRef.current = channel;
 
-        switch (payload.type) {
-          case 'offer': {
-            if (callState !== 'idle') {
-              // Send busy signal if already in call
-              channel.send({
-                type: 'broadcast',
-                event: 'call_signal',
-                payload: {
-                  senderClientId: clientId,
-                  callerName: myName,
-                  type: 'busy',
-                  callType: payload.callType,
-                },
-              });
-              return;
-            }
+    channel.on('broadcast', { event: 'call_signal' }, async ({ payload }: { payload: SignalPayload }) => {
+      if (!payload || payload.senderClientId === clientId) return;
 
-            setCallType(payload.callType);
-            setRemoteName(payload.callerName || 'Usuario');
-            setCallState('incoming');
-
-            showBrowserNotification(
-              payload.callType === 'video' ? 'Videollamada entrante' : 'Llamada de voz entrante',
-              `${payload.callerName || 'Usuario'} te está llamando...`
-            );
-
-            const pc = createPeerConnection();
-            if (payload.sdp) {
-              await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
-              await drainQueuedCandidates(pc);
-            }
-            break;
+      switch (payload.type) {
+        case 'offer': {
+          // If already in an active/ringing call, reject with busy
+          if (callStateRef.current !== 'idle') {
+            channel.send({
+              type: 'broadcast',
+              event: 'call_signal',
+              payload: {
+                senderClientId: clientId,
+                callerName: myName,
+                type: 'busy',
+                callType: payload.callType,
+              },
+            });
+            return;
           }
 
-          case 'answer': {
-            if (pcRef.current && payload.sdp) {
-              await pcRef.current.setRemoteDescription(new RTCSessionDescription(payload.sdp));
-              await drainQueuedCandidates(pcRef.current);
-              setCallState('connected');
+          setCallTypeSynced(payload.callType);
+          setRemoteName(payload.callerName || 'Usuario');
+          setCallStateSynced('incoming');
 
-              // Start duration timer
-              setCallDuration(0);
-              durationTimerRef.current = setInterval(() => {
-                setCallDuration((prev) => prev + 1);
-              }, 1000);
-            }
-            break;
-          }
+          showBrowserNotification(
+            payload.callType === 'video' ? 'Videollamada entrante' : 'Llamada de voz entrante',
+            `${payload.callerName || 'Usuario'} te está llamando...`
+          );
 
-          case 'candidate': {
-            if (payload.candidate) {
-              if (pcRef.current && pcRef.current.remoteDescription) {
-                try {
-                  await pcRef.current.addIceCandidate(new RTCIceCandidate(payload.candidate));
-                } catch (e) {
-                  console.error('Error adding received ice candidate:', e);
-                }
-              } else {
-                // Queue until remoteDescription is set
-                iceCandidateQueueRef.current.push(payload.candidate);
-              }
-            }
-            break;
+          const pc = createPeerConnection();
+          if (payload.sdp) {
+            await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+            await drainQueuedCandidates(pc);
           }
-
-          case 'end':
-          case 'rejected':
-          case 'busy': {
-            endCall(false);
-            break;
-          }
+          break;
         }
-      });
+
+        case 'answer': {
+          if (pcRef.current && payload.sdp) {
+            await pcRef.current.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+            await drainQueuedCandidates(pcRef.current);
+            setCallStateSynced('connected');
+
+            // Start duration timer
+            setCallDuration(0);
+            if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+            durationTimerRef.current = setInterval(() => {
+              setCallDuration((prev) => prev + 1);
+            }, 1000);
+          }
+          break;
+        }
+
+        case 'candidate': {
+          if (payload.candidate) {
+            if (pcRef.current && pcRef.current.remoteDescription) {
+              try {
+                await pcRef.current.addIceCandidate(new RTCIceCandidate(payload.candidate));
+              } catch (e) {
+                console.error('Error adding received ice candidate:', e);
+              }
+            } else {
+              // Queue until remoteDescription is set
+              iceCandidateQueueRef.current.push(payload.candidate);
+            }
+          }
+          break;
+        }
+
+        case 'end':
+        case 'rejected':
+        case 'busy': {
+          endCall(false);
+          break;
+        }
+      }
+    });
 
     return () => {
-      if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+      if (durationTimerRef.current) {
+        clearInterval(durationTimerRef.current);
+        durationTimerRef.current = null;
+      }
     };
-  }, [roomId, clientId, myName, callState, createPeerConnection, endCall]);
+  }, [roomId, clientId, myName, createPeerConnection, endCall, setCallStateSynced, setCallTypeSynced]);
 
   return {
     callState,
