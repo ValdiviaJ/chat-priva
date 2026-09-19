@@ -68,11 +68,12 @@ export const MessageList: React.FC<MessageListProps> = ({
   }, [isOtherTyping]);
 
   return (
-    <div className="relative flex-1 min-h-0 bg-slate-50 dark:bg-[#080d1a] transition-colors">
+    <div className="relative flex-1 min-h-0 bg-slate-50 dark:bg-[#080d1a] transition-colors overflow-hidden">
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="h-full overflow-y-auto px-4 sm:px-8 py-6 flex flex-col scroll-smooth scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800"
+        tabIndex={0}
+        className="h-full overflow-y-auto px-4 sm:px-8 py-6 flex flex-col focus:outline-none"
       >
         {messages.length === 0 ? (
           <div className="m-auto flex flex-col items-center justify-center text-center p-6 text-slate-500 dark:text-slate-400 max-w-sm">
@@ -88,7 +89,7 @@ export const MessageList: React.FC<MessageListProps> = ({
           </div>
         ) : (
           <div className="flex flex-col min-h-full justify-end max-w-4xl w-full mx-auto space-y-1">
-            <div className="flex-1" />
+            <div className="flex-1 min-h-4" />
             {messages.map((msg) => (
               <MessageBubble
                 key={msg.id}
