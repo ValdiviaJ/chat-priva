@@ -28,6 +28,9 @@ import {
 import { supabase } from '../services/supabase';
 import { parseMessageContent, type QuotedMessage } from '../types/chatPayloads';
 import type { FileAttachment } from '../services/storageService';
+import { triggerPanicMode } from '../utils/panicMode';
+import { requestNotificationPermission, showBrowserNotification } from '../utils/notifications';
+import { getClientId } from '../utils/clientId';
 
 export const ChatPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -35,14 +38,6 @@ export const ChatPage: React.FC = () => {
   const { showToast } = useToast();
 
   const { room, currentParticipant, loading: roomLoading, error: roomError, isFull } = useRoom(roomId);
-  const {
-    messages,
-    loading: messagesLoading,
-    sending,
-    sendMessage,
-    editMessage,
-    deleteMessage,
-  } = useMessages(room?.id);
 
   const {
     isOtherOnline,
@@ -60,7 +55,18 @@ export const ChatPage: React.FC = () => {
     sendReadReceipt,
     ephemeralSeconds,
     updateEphemeralSeconds,
+    sharedKey,
+    isE2EEReady,
   } = usePresence(room?.id);
+
+  const {
+    messages,
+    loading: messagesLoading,
+    sending,
+    sendMessage,
+    editMessage,
+    deleteMessage,
+  } = useMessages(room?.id, sharedKey);
 
   const {
     callState,
@@ -131,12 +137,42 @@ export const ChatPage: React.FC = () => {
     }
   }, [room, messages.length, otherUsername, isCustomTitle]);
 
-  // Global Ctrl+F / Cmd+F handler for in-chat search
+  // Request notification permission when entering room
   useEffect(() => {
+    requestNotificationPermission();
+  }, []);
+
+  // Notify incoming messages if window is not focused
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const lastMsg = messages[messages.length - 1];
+    const myId = getClientId();
+
+    if (lastMsg.sender_id !== myId) {
+      const parsed = parseMessageContent(lastMsg.content);
+      let text = 'Nuevo mensaje';
+      if (parsed.kind === 'text') text = parsed.text;
+      else if (parsed.kind === 'file') text = `📎 Archivo: ${parsed.file.name}`;
+      else if (parsed.kind === 'audio') text = '🎤 Nota de voz';
+
+      showBrowserNotification(otherUsername || 'Nuevo mensaje recibido', text);
+    }
+  }, [messages.length, otherUsername]);
+
+  // Global shortcuts: Ctrl+F (search) and Double-Escape (Panic Mode)
+  useEffect(() => {
+    let lastEscPress = 0;
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
         e.preventDefault();
         setIsSearchOpen(true);
+      } else if (e.key === 'Escape') {
+        const now = Date.now();
+        if (now - lastEscPress < 600) {
+          // Double tap Escape detected -> Panic Mode
+          triggerPanicMode();
+        }
+        lastEscPress = now;
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -326,6 +362,7 @@ export const ChatPage: React.FC = () => {
           onToggleSearch={() => setIsSearchOpen((prev) => !prev)}
           onStartVoiceCall={() => startCall('voice', otherUsername || 'Anónimo')}
           onStartVideoCall={() => startCall('video', otherUsername || 'Anónimo')}
+          isE2EEReady={isE2EEReady}
         />
 
         {/* Pinned Message Banner */}

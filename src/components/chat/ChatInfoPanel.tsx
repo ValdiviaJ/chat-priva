@@ -10,7 +10,11 @@ import {
   Share2,
   Lock,
   Timer,
+  QrCode,
+  ShieldAlert,
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
+import { triggerPanicMode } from '../../utils/panicMode';
 import type { Room, Message } from '../../types/database';
 import { useToast } from '../common/Toast';
 
@@ -41,6 +45,7 @@ export const ChatInfoPanel: React.FC<ChatInfoPanelProps> = ({
   const [tempTitle, setTempTitle] = useState(chatTitle);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [showQR, setShowQR] = useState(false);
   const { showToast } = useToast();
 
   const handleSaveTitle = () => {
@@ -191,31 +196,57 @@ export const ChatInfoPanel: React.FC<ChatInfoPanelProps> = ({
               <span className="font-mono font-bold text-slate-900 dark:text-white tracking-wider">{room.code}</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="grid grid-cols-3 gap-1.5 pt-1">
               <button
                 onClick={handleCopyCode}
-                className="flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-lg bg-slate-200/80 hover:bg-slate-300 dark:bg-[#1a253a] dark:hover:bg-[#22304b] text-slate-800 dark:text-slate-200 text-xs font-medium transition-colors cursor-pointer"
+                className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-slate-200/80 hover:bg-slate-300 dark:bg-[#1a253a] dark:hover:bg-[#22304b] text-slate-800 dark:text-slate-200 text-xs font-medium transition-colors cursor-pointer"
+                title="Copiar código"
               >
                 {copiedCode ? (
                   <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
                 ) : (
                   <Copy className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                 )}
-                <span>Copiar código</span>
+                <span className="hidden sm:inline">Código</span>
               </button>
 
               <button
                 onClick={handleCopyLink}
-                className="flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-medium border border-blue-500/30 transition-colors cursor-pointer"
+                className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-medium border border-blue-500/30 transition-colors cursor-pointer"
+                title="Copiar enlace"
               >
                 {copiedLink ? (
                   <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
                 ) : (
                   <Share2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                 )}
-                <span>Copiar enlace</span>
+                <span className="hidden sm:inline">Enlace</span>
+              </button>
+
+              <button
+                onClick={() => setShowQR((prev) => !prev)}
+                className={`flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+                  showQR
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-[#131b2c] dark:hover:bg-[#1a253c] border-slate-200 dark:border-[#1e2a42] text-slate-700 dark:text-slate-300'
+                }`}
+                title="Ver código QR para móvil"
+              >
+                <QrCode className="w-3.5 h-3.5 text-indigo-400" />
+                <span>QR</span>
               </button>
             </div>
+
+            {showQR && (
+              <div className="flex flex-col items-center justify-center p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2 animate-in zoom-in-95 duration-150">
+                <div className="p-2 bg-white rounded-lg shadow-xs">
+                  <QRCodeSVG value={`${window.location.origin}/chat/${room.code}`} size={140} level="M" />
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center font-medium">
+                  Escanea para unirte desde el móvil
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Resumen */}
@@ -292,6 +323,19 @@ export const ChatInfoPanel: React.FC<ChatInfoPanelProps> = ({
             >
               <Trash2 className="w-4 h-4 text-slate-400 group-hover:text-rose-500" />
               <span>Eliminar conversación</span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (window.confirm('¿Activar modo de pánico? Se borrarán todos los datos locales y saldrás de inmediato.')) {
+                  triggerPanicMode();
+                }
+              }}
+              className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors text-sm text-left cursor-pointer"
+              title="Borra el almacenamiento local y redirige de emergencia"
+            >
+              <ShieldAlert className="w-4 h-4 text-amber-500" />
+              <span>Modo Pánico (Purga rápida)</span>
             </button>
 
             <button

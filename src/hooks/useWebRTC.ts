@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 import { getClientId, getUserName } from '../utils/clientId';
+import { showBrowserNotification } from '../utils/notifications';
 
 export type CallType = 'voice' | 'video';
 export type CallState = 'idle' | 'calling' | 'incoming' | 'connected';
@@ -274,6 +275,11 @@ export function useWebRTC(roomId: string | undefined) {
             setCallType(payload.callType);
             setRemoteName(payload.callerName || 'Usuario');
             setCallState('incoming');
+
+            showBrowserNotification(
+              payload.callType === 'video' ? 'Videollamada entrante' : 'Llamada de voz entrante',
+              `${payload.callerName || 'Usuario'} te está llamando...`
+            );
 
             const pc = createPeerConnection();
             if (payload.sdp) {

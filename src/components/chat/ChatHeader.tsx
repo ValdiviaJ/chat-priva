@@ -14,6 +14,7 @@ import {
   Search,
   Phone,
   Video,
+  Lock,
 } from 'lucide-react';
 import { ThemeToggle } from '../common/ThemeToggle';
 import type { Room, Participant } from '../../types/database';
@@ -34,6 +35,7 @@ interface ChatHeaderProps {
   onToggleSearch?: () => void;
   onStartVoiceCall?: () => void;
   onStartVideoCall?: () => void;
+  isE2EEReady?: boolean;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -51,6 +53,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onToggleSearch,
   onStartVoiceCall,
   onStartVideoCall,
+  isE2EEReady = false,
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(chatTitle);
@@ -145,6 +148,16 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
       {/* Right: Audio toggle + Info toggle + Theme toggle */}
       <div className="flex items-center gap-1 sm:gap-1.5">
+        {isE2EEReady && (
+          <div
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 text-[11px] font-medium"
+            title="Cifrado de Extremo a Extremo (E2EE) activo"
+          >
+            <Lock className="w-3 h-3" />
+            <span className="hidden sm:inline">E2EE</span>
+          </div>
+        )}
+
         {ephemeralSeconds > 0 && (
           <div
             className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-medium cursor-pointer"

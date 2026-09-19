@@ -1,5 +1,14 @@
-import React from 'react';
-import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, User } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  Phone,
+  PhoneOff,
+  Mic,
+  MicOff,
+  Video,
+  VideoOff,
+  Minimize2,
+  Maximize2,
+} from 'lucide-react';
 import type { CallState, CallType } from '../../hooks/useWebRTC';
 
 interface CallModalProps {
@@ -33,6 +42,8 @@ export const CallModal: React.FC<CallModalProps> = ({
   onToggleMuteAudio,
   onToggleVideo,
 }) => {
+  const [isMinimized, setIsMinimized] = useState(false);
+
   if (callState === 'idle') return null;
 
   const formatDuration = (secs: number) => {
@@ -41,22 +52,123 @@ export const CallModal: React.FC<CallModalProps> = ({
     return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  // Minimized Floating PiP Mode (Bottom-Right corner)
+  if (isMinimized && callState === 'connected') {
+    return (
+      <div className="fixed bottom-20 right-4 z-50 w-72 bg-[#0d1524] border border-blue-500/40 rounded-2xl shadow-2xl overflow-hidden text-white flex flex-col p-3 transition-all animate-in slide-in-from-bottom-5">
+        <div className="flex items-center justify-between pb-2 mb-1 border-b border-slate-800">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-semibold text-xs truncate">{remoteName}</span>
+            <span className="text-[11px] font-mono text-blue-400">
+              {formatDuration(callDuration)}
+            </span>
+          </div>
+          <button
+            onClick={() => setIsMinimized(false)}
+            className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Maximizar llamada"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Mini Preview */}
+        {callType === 'video' ? (
+          <div className="relative w-full h-36 bg-black rounded-xl overflow-hidden my-1">
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute bottom-1.5 right-1.5 w-16 h-20 bg-slate-900 border border-white/20 rounded-lg overflow-hidden">
+              <video
+                ref={localVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className={`w-full h-full object-cover ${isVideoDisabled ? 'hidden' : ''}`}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center py-3">
+            <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-base font-bold shadow-md">
+              {remoteName.slice(0, 2).toUpperCase()}
+            </div>
+          </div>
+        )}
+
+        {/* Mini Controls */}
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <button
+            type="button"
+            onClick={onToggleMuteAudio}
+            className={`p-2 rounded-full cursor-pointer transition-colors ${
+              isAudioMuted ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-200'
+            }`}
+            title={isAudioMuted ? 'Activar micrófono' : 'Silenciar'}
+          >
+            {isAudioMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+          </button>
+
+          {callType === 'video' && (
+            <button
+              type="button"
+              onClick={onToggleVideo}
+              className={`p-2 rounded-full cursor-pointer transition-colors ${
+                isVideoDisabled ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-200'
+              }`}
+              title={isVideoDisabled ? 'Encender cámara' : 'Apagar cámara'}
+            >
+              {isVideoDisabled ? <VideoOff className="w-4 h-4" /> : <Video className="w-4 h-4" />}
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={onEnd}
+            className="p-2 rounded-full bg-rose-600 hover:bg-rose-500 text-white shadow-lg cursor-pointer"
+            title="Colgar"
+          >
+            <PhoneOff className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="relative w-full max-w-lg bg-[#0d1524] border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col items-center justify-between min-h-[420px] p-6 text-white">
-        {/* Top Header: Title / Timer */}
-        <div className="text-center z-20 pt-2">
-          <p className="text-xs uppercase tracking-widest text-slate-400 font-semibold mb-1">
-            {callType === 'video' ? 'Videollamada' : 'Llamada de voz'}
-          </p>
-          <h3 className="text-xl font-bold tracking-tight">{remoteName}</h3>
-          <p className="text-xs text-blue-400 mt-1 font-mono">
-            {callState === 'calling'
-              ? 'Llamando...'
-              : callState === 'incoming'
-              ? 'Llamada entrante...'
-              : formatDuration(callDuration)}
-          </p>
+        {/* Top Header: Title / Timer / Minimize */}
+        <div className="w-full flex items-start justify-between z-20 pt-1">
+          <div className="w-8" />
+          <div className="text-center">
+            <p className="text-xs uppercase tracking-widest text-slate-400 font-semibold mb-1">
+              {callType === 'video' ? 'Videollamada' : 'Llamada de voz'}
+            </p>
+            <h3 className="text-xl font-bold tracking-tight">{remoteName}</h3>
+            <p className="text-xs text-blue-400 mt-1 font-mono">
+              {callState === 'calling'
+                ? 'Llamando...'
+                : callState === 'incoming'
+                ? 'Llamada entrante...'
+                : formatDuration(callDuration)}
+            </p>
+          </div>
+          {callState === 'connected' ? (
+            <button
+              onClick={() => setIsMinimized(true)}
+              className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Minimizar llamada (PiP)"
+            >
+              <Minimize2 className="w-5 h-5" />
+            </button>
+          ) : (
+            <div className="w-8" />
+          )}
         </div>
 
         {/* Center Content: Video streams or Voice Avatar */}

@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { createRoom } from '../../services/roomService';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../common/Toast';
-import { Copy, Check, ArrowRight, Loader2, KeyRound, Sparkles, Share2 } from 'lucide-react';
+import { Copy, Check, ArrowRight, Loader2, Sparkles, Share2, QrCode } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { setUserName } from '../../utils/clientId';
 import confetti from 'canvas-confetti';
 
@@ -15,6 +16,7 @@ export const CreateRoom: React.FC = () => {
   const [createdRoomCode, setCreatedRoomCode] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showQR, setShowQR] = useState(false);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +78,8 @@ export const CreateRoom: React.FC = () => {
     }
   };
 
+  const shareUrl = createdRoomCode ? `${window.location.origin}/chat/${createdRoomCode}` : '';
+
   return (
     <div className="bg-white/80 dark:bg-[#0c121e]/80 backdrop-blur-sm border border-slate-200/90 dark:border-slate-800/80 rounded-2xl p-6 sm:p-7 shadow-xs hover:border-slate-300 dark:hover:border-slate-700/80 transition-all duration-200">
       {toast && <Toast message={toast.message} type={toast.type} />}
@@ -116,7 +120,7 @@ export const CreateRoom: React.FC = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white font-medium text-sm rounded-xl transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs"
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm rounded-xl transition-all shadow-md shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isLoading ? (
               <>
@@ -143,7 +147,7 @@ export const CreateRoom: React.FC = () => {
           </div>
 
           <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-            Comparte este código con la persona invitada para comenzar a hablar:
+            Comparte este código o escanea el QR con tu celular para comenzar:
           </p>
 
           <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 dark:bg-[#131b2c] border border-slate-200 dark:border-[#1f2c44] rounded-xl">
@@ -164,20 +168,47 @@ export const CreateRoom: React.FC = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 pt-1">
+          {/* QR Code toggle section */}
+          {showQR && (
+            <div className="flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2 animate-in zoom-in-95 duration-150">
+              <div className="p-2 bg-white rounded-lg shadow-sm">
+                <QRCodeSVG value={shareUrl} size={160} level="M" />
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center font-medium">
+                Escanea con la cámara para ingresar inmediatamente
+              </p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-3 gap-1.5 pt-1">
             <button
               onClick={copyLink}
               type="button"
-              className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-[#131b2c] dark:hover:bg-[#1a253c] border border-slate-200 dark:border-[#1f2c44] text-slate-700 dark:text-slate-300 font-medium text-xs rounded-xl transition-all cursor-pointer"
+              className="flex items-center justify-center gap-1 py-2 px-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-[#131b2c] dark:hover:bg-[#1a253c] border border-slate-200 dark:border-[#1f2c44] text-slate-700 dark:text-slate-300 font-medium text-xs rounded-xl transition-all cursor-pointer"
+              title="Copiar enlace directo"
             >
               {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />}
-              <span>Copiar enlace</span>
+              <span className="hidden sm:inline">Enlace</span>
+            </button>
+
+            <button
+              onClick={() => setShowQR((prev) => !prev)}
+              type="button"
+              className={`flex items-center justify-center gap-1 py-2 px-2.5 border text-xs font-medium rounded-xl transition-all cursor-pointer ${
+                showQR
+                  ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500/50 text-blue-600 dark:text-blue-400'
+                  : 'bg-slate-100 hover:bg-slate-200 dark:bg-[#131b2c] dark:hover:bg-[#1a253c] border-slate-200 dark:border-[#1f2c44] text-slate-700 dark:text-slate-300'
+              }`}
+              title="Mostrar u ocultar código QR"
+            >
+              <QrCode className="w-3.5 h-3.5 text-indigo-500" />
+              <span>{showQR ? 'Ocultar' : 'Ver QR'}</span>
             </button>
 
             <button
               onClick={enterChat}
               type="button"
-              className="flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-xl transition-all cursor-pointer"
+              className="flex items-center justify-center gap-1 py-2 px-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-xl transition-all cursor-pointer"
             >
               <span>Entrar</span>
               <ArrowRight className="w-3.5 h-3.5" />
