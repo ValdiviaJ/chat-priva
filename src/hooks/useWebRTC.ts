@@ -20,8 +20,12 @@ const ICE_SERVERS: RTCConfiguration = {
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
     { urls: 'stun:stun.cloudflare.com:3478' },
+    { urls: 'stun:stun.services.mozilla.com:3478' },
   ],
+  iceCandidatePoolSize: 10,
 };
 
 export function useWebRTC(roomId: string | undefined) {
@@ -30,6 +34,7 @@ export function useWebRTC(roomId: string | undefined) {
   const [remoteName, setRemoteName] = useState<string>('Usuario');
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [isVideoDisabled, setIsVideoDisabled] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
 
   // Keep a ref of callState and callType to avoid stale closures in broadcast handlers
@@ -300,6 +305,80 @@ export function useWebRTC(roomId: string | undefined) {
     }
   }, []);
 
+  // Toggle Screen Sharing
+  const toggleScreenShare = useCallback(async () => {
+    if (!pcRef.current) return;
+
+    if (isScreenSharing) {
+      // Revert back to webcam
+      try {
+        const camStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+        const camTrack = camStream.getVideoTracks()[0];
+        const senders = pcRef.current.getSenders();
+        const videoSender = senders.find((s) => s.track?.kind === 'video');
+
+        if (videoSender && camTrack) {
+          videoSender.replaceTrack(camTrack);
+        }
+
+        if (localStreamRef.current) {
+          const oldVideoTrack = localStreamRef.current.getVideoTracks()[0];
+          if (oldVideoTrack) {
+            oldVideoTrack.stop();
+            localStreamRef.current.removeTrack(oldVideoTrack);
+          }
+          localStreamRef.current.addTrack(camTrack);
+        }
+
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = localStreamRef.current;
+        }
+
+        setIsScreenSharing(false);
+      } catch (err) {
+        console.error('Error switching back to camera:', err);
+      }
+    } else {
+      // Start screen sharing
+      try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+        });
+        const screenTrack = screenStream.getVideoTracks()[0];
+        const senders = pcRef.current.getSenders();
+        const videoSender = senders.find((s) => s.track?.kind === 'video');
+
+        if (videoSender && screenTrack) {
+          videoSender.replaceTrack(screenTrack);
+        }
+
+        if (localStreamRef.current) {
+          const oldVideoTrack = localStreamRef.current.getVideoTracks()[0];
+          if (oldVideoTrack) {
+            oldVideoTrack.stop();
+            localStreamRef.current.removeTrack(oldVideoTrack);
+          }
+          localStreamRef.current.addTrack(screenTrack);
+        }
+
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = localStreamRef.current;
+        }
+
+        screenTrack.onended = () => {
+          toggleScreenShare();
+        };
+
+        setIsScreenSharing(true);
+      } catch (err) {
+        console.error('Error starting screen share:', err);
+      }
+    }
+  }, [isScreenSharing]);
+
   // Subscribe to call signaling events
   useEffect(() => {
     if (!roomId) return;
@@ -415,6 +494,7 @@ export function useWebRTC(roomId: string | undefined) {
     callDuration,
     isAudioMuted,
     isVideoDisabled,
+    isScreenSharing,
     localVideoRef,
     remoteVideoRef,
     remoteAudioRef,
@@ -424,5 +504,6 @@ export function useWebRTC(roomId: string | undefined) {
     endCall,
     toggleMuteAudio,
     toggleVideo,
+    toggleScreenShare,
   };
 }

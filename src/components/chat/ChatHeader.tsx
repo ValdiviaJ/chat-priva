@@ -15,6 +15,7 @@ import {
   Phone,
   Video,
   Lock,
+  KeyRound,
 } from 'lucide-react';
 import { ThemeToggle } from '../common/ThemeToggle';
 import { InstallPwaButton } from '../common/InstallPwaButton';
@@ -37,6 +38,8 @@ interface ChatHeaderProps {
   onStartVoiceCall?: () => void;
   onStartVideoCall?: () => void;
   isE2EEReady?: boolean;
+  isCustomPinSet?: boolean;
+  onPromptPin?: () => void;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -55,6 +58,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onStartVoiceCall,
   onStartVideoCall,
   isE2EEReady = false,
+  isCustomPinSet = false,
+  onPromptPin,
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(chatTitle);
@@ -157,6 +162,23 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             <Lock className="w-3 h-3" />
             <span className="hidden sm:inline">E2EE</span>
           </div>
+        )}
+
+        {/* Zero-Knowledge PIN toggle/setting */}
+        {onPromptPin && (
+          <button
+            type="button"
+            onClick={onPromptPin}
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
+              isCustomPinSet
+                ? 'bg-purple-500/15 border border-purple-500/30 text-purple-600 dark:text-purple-400'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+            title={isCustomPinSet ? 'PIN Zero-Knowledge activado' : 'Establecer PIN Zero-Knowledge'}
+          >
+            <KeyRound className="w-3 h-3" />
+            <span className="hidden sm:inline">{isCustomPinSet ? 'PIN Activo' : 'Añadir PIN'}</span>
+          </button>
         )}
 
         {ephemeralSeconds > 0 && (

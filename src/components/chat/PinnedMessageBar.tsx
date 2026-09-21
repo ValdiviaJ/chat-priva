@@ -24,6 +24,8 @@ export const PinnedMessageBar: React.FC<PinnedMessageBarProps> = ({
     summary = '🎤 Nota de voz';
   } else if (parsed.kind === 'reply') {
     summary = 'Mensaje citado';
+  } else if (parsed.kind === 'view_once') {
+    summary = '👁️ Mensaje efímero (1 sola vista)';
   } else {
     summary = parsed.text;
   }

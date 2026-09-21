@@ -16,7 +16,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return false;
 }
 
-export function showBrowserNotification(title: string, body: string, icon = '/vite.svg'): void {
+export async function showBrowserNotification(title: string, body: string, icon = '/vite.svg'): Promise<void> {
   if (!('Notification' in window) || Notification.permission !== 'granted') {
     return;
   }
@@ -27,6 +27,18 @@ export function showBrowserNotification(title: string, body: string, icon = '/vi
   }
 
   try {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg && reg.showNotification) {
+        await reg.showNotification(title, {
+          body,
+          icon,
+          badge: icon,
+        });
+        return;
+      }
+    }
+
     const notif = new Notification(title, {
       body,
       icon,

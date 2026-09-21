@@ -8,6 +8,8 @@ import {
   VideoOff,
   Minimize2,
   Maximize2,
+  ScreenShare,
+  ScreenShareOff,
 } from 'lucide-react';
 import type { CallState, CallType } from '../../hooks/useWebRTC';
 
@@ -18,6 +20,7 @@ interface CallModalProps {
   callDuration: number;
   isAudioMuted: boolean;
   isVideoDisabled: boolean;
+  isScreenSharing?: boolean;
   localVideoRef: React.RefObject<HTMLVideoElement | null>;
   remoteVideoRef: React.RefObject<HTMLVideoElement | null>;
   remoteAudioRef?: React.RefObject<HTMLAudioElement | null>;
@@ -26,6 +29,7 @@ interface CallModalProps {
   onEnd: () => void;
   onToggleMuteAudio: () => void;
   onToggleVideo: () => void;
+  onToggleScreenShare?: () => void;
 }
 
 export const CallModal: React.FC<CallModalProps> = ({
@@ -35,6 +39,7 @@ export const CallModal: React.FC<CallModalProps> = ({
   callDuration,
   isAudioMuted,
   isVideoDisabled,
+  isScreenSharing = false,
   localVideoRef,
   remoteVideoRef,
   remoteAudioRef,
@@ -43,6 +48,7 @@ export const CallModal: React.FC<CallModalProps> = ({
   onEnd,
   onToggleMuteAudio,
   onToggleVideo,
+  onToggleScreenShare,
 }) => {
   const [isMinimized, setIsMinimized] = useState(false);
 
@@ -308,6 +314,22 @@ export const CallModal: React.FC<CallModalProps> = ({
                   title={isVideoDisabled ? 'Encender cámara' : 'Apagar cámara'}
                 >
                   {isVideoDisabled ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+                </button>
+              )}
+
+              {/* Screen Share Toggle (only if video call) */}
+              {callType === 'video' && onToggleScreenShare && (
+                <button
+                  type="button"
+                  onClick={onToggleScreenShare}
+                  className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+                    isScreenSharing
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                  }`}
+                  title={isScreenSharing ? 'Dejar de compartir pantalla' : 'Compartir pantalla'}
+                >
+                  {isScreenSharing ? <ScreenShareOff className="w-5 h-5" /> : <ScreenShare className="w-5 h-5" />}
                 </button>
               )}
 

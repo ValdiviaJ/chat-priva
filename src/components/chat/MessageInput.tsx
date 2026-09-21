@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Smile, Code2, Loader2, X, Reply } from 'lucide-react';
+import { Send, Paperclip, Smile, Code2, Loader2, X, Reply, Eye } from 'lucide-react';
 import { useToast } from '../common/Toast';
 import { uploadChatFile, formatFileSize } from '../../services/storageService';
 import { EmojiPicker } from './EmojiPicker';
@@ -29,6 +29,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isViewOnce, setIsViewOnce] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -135,7 +136,15 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       try {
         setIsUploading(true);
         const attachment = await uploadChatFile(roomId, selectedFile);
-        let filePayload = JSON.stringify(attachment);
+        let filePayload = isViewOnce
+          ? JSON.stringify({
+              type: 'view_once',
+              mediaType: attachment.mimeType.startsWith('image/') ? 'image' : 'text',
+              content: attachment.url,
+              fileName: attachment.name,
+              fileSize: attachment.size,
+            })
+          : JSON.stringify(attachment);
 
         if (replyingTo) {
           filePayload = JSON.stringify({
@@ -148,6 +157,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         const success = await onSendMessage(filePayload);
         if (success) {
           setSelectedFile(null);
+          setIsViewOnce(false);
           onCancelReply?.();
         } else {
           showToast('No se pudo enviar el archivo al chat', 'error');
@@ -169,18 +179,26 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     onTyping(false);
 
     setIsSubmitting(true);
-    let finalPayload = trimmed;
+    let finalPayload = isViewOnce
+      ? JSON.stringify({
+          type: 'view_once',
+          mediaType: 'text',
+          content: trimmed,
+        })
+      : trimmed;
+
     if (replyingTo) {
       finalPayload = JSON.stringify({
         type: 'reply',
         replyTo: replyingTo,
-        content: trimmed,
+        content: finalPayload,
       });
     }
 
     const success = await onSendMessage(finalPayload);
     if (success) {
       setContent('');
+      setIsViewOnce(false);
       onCancelReply?.();
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
@@ -347,6 +365,21 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                 title="Insertar bloque de código"
               >
                 <Code2 className="w-4 h-4" />
+              </button>
+
+              {/* View Once Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setIsViewOnce((prev) => !prev)}
+                disabled={disabled || isUploading}
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-40 ${
+                  isViewOnce
+                    ? 'text-amber-500 bg-amber-500/10 border border-amber-500/30'
+                    : 'text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'
+                }`}
+                title={isViewOnce ? 'Desactivar visualización única' : 'Activar 1 sola visualización (View Once)'}
+              >
+                <Eye className="w-4 h-4" />
               </button>
 
               {/* Voice Recorder button */}

@@ -12,11 +12,15 @@ const E2EE_PREFIX = '🔒E2EE:';
 // Deterministic salt for the room code PBKDF2 derivation
 const SALT = new TextEncoder().encode('quickchat_e2ee_room_salt_v1');
 
-export async function deriveRoomKey(roomCode: string): Promise<CryptoKey> {
+export async function deriveRoomKey(roomCode: string, roomPin?: string): Promise<CryptoKey> {
   const enc = new TextEncoder();
+  const secret = roomPin && roomPin.trim() 
+    ? `${roomCode.trim().toUpperCase()}:${roomPin.trim()}` 
+    : roomCode.trim().toUpperCase();
+
   const keyMaterial = await window.crypto.subtle.importKey(
     'raw',
-    enc.encode(roomCode.trim().toUpperCase()),
+    enc.encode(secret),
     { name: 'PBKDF2' },
     false,
     ['deriveKey']

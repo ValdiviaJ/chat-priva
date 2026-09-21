@@ -14,6 +14,8 @@ import {
   Copy,
   Pin,
   X,
+  Eye,
+  Flame,
 } from 'lucide-react';
 import { getUserName } from '../../utils/clientId';
 import { formatFileSize, type FileAttachment } from '../../services/storageService';
@@ -61,6 +63,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState('');
   const [isCopied, setIsCopied] = useState(false);
+  const [viewOnceOpened, setViewOnceOpened] = useState(false);
+  const [viewOnceModalOpen, setViewOnceModalOpen] = useState(false);
 
   const formattedTime = formatMessageTime(message.created_at);
   const myName = getUserName() || 'Tú';
@@ -392,6 +396,29 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
               </a>
             </div>
           )
+        ) : activePayload.kind === 'view_once' ? (
+          /* View Once ephemeral message */
+          viewOnceOpened ? (
+            <div className="flex items-center gap-2 py-1 px-2 text-xs italic opacity-70 select-none">
+              <Flame className="w-4 h-4 text-amber-500 animate-pulse" />
+              <span>Mensaje efímero destruido tras visualizarse</span>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 p-1">
+              <button
+                type="button"
+                onClick={() => setViewOnceModalOpen(true)}
+                className={`flex items-center gap-2.5 py-2.5 px-3.5 rounded-xl font-medium text-xs transition-all cursor-pointer ${
+                  isMe
+                    ? 'bg-blue-700 hover:bg-blue-800 text-white'
+                    : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                }`}
+              >
+                <Eye className="w-4 h-4 shrink-0" />
+                <span>Foto o mensaje efímero (1 sola visualización)</span>
+              </button>
+            </div>
+          )
         ) : activePayload.kind === 'audio' ? (
           <VoiceMessagePlayer
             url={activePayload.audio.url}
@@ -499,6 +526,51 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
           title={myName}
         >
           {getMyInitials()}
+        </div>
+      )}
+
+      {/* View Once Ephemeral Viewer Modal */}
+      {viewOnceModalOpen && activePayload.kind === 'view_once' && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in select-none"
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          <div className="relative max-w-xl w-full flex flex-col items-center justify-center bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl">
+            <div className="w-full flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+              <div className="flex items-center gap-2 text-amber-400 text-xs font-semibold uppercase tracking-wider">
+                <Flame className="w-4 h-4" />
+                <span>Mensaje de visualización única</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setViewOnceModalOpen(false);
+                  setViewOnceOpened(true);
+                }}
+                className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white cursor-pointer"
+                title="Cerrar y destruir"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {activePayload.viewOnce.mediaType === 'image' ? (
+              <img
+                src={activePayload.viewOnce.content}
+                alt="Contenido efímero"
+                className="max-h-[65vh] w-auto rounded-xl object-contain pointer-events-none select-none"
+                draggable={false}
+              />
+            ) : (
+              <p className="text-white text-base leading-relaxed py-6 px-4 text-center select-none font-medium">
+                {activePayload.viewOnce.content}
+              </p>
+            )}
+
+            <p className="text-[11px] text-slate-400 mt-4 text-center">
+              Al cerrar esta ventana, el contenido se destruirá permanentemente en esta sesión.
+            </p>
+          </div>
         </div>
       )}
     </div>

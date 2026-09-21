@@ -39,17 +39,38 @@ export const ChatPage: React.FC = () => {
   const { showToast } = useToast();
 
   const { room, currentParticipant, loading: roomLoading, error: roomError, isFull } = useRoom(roomId);
+  const [roomPin, setRoomPin] = useState<string>(() => {
+    return localStorage.getItem(`room_pin_${roomId}`) || '';
+  });
   const [e2eeKey, setE2eeKey] = useState<CryptoKey | null>(null);
 
   useEffect(() => {
     if (room?.code) {
-      deriveRoomKey(room.code).then((key) => {
+      deriveRoomKey(room.code, roomPin).then((key) => {
         setE2eeKey(key);
       }).catch((err) => {
         console.error('Error deriving room E2EE key:', err);
       });
     }
-  }, [room?.code]);
+  }, [room?.code, roomPin]);
+
+  const handlePromptPin = () => {
+    const input = window.prompt(
+      'Introduce el PIN o contraseña acordada para esta sala (Zero-Knowledge E2EE):',
+      roomPin
+    );
+    if (input !== null) {
+      const clean = input.trim();
+      setRoomPin(clean);
+      if (clean) {
+        localStorage.setItem(`room_pin_${roomId}`, clean);
+        showToast('PIN E2EE configurado para esta sala', 'success');
+      } else {
+        localStorage.removeItem(`room_pin_${roomId}`);
+        showToast('PIN removido. Usando clave base de sala', 'info');
+      }
+    }
+  };
 
   const {
     isOtherOnline,
@@ -85,6 +106,7 @@ export const ChatPage: React.FC = () => {
     callDuration,
     isAudioMuted,
     isVideoDisabled,
+    isScreenSharing,
     localVideoRef,
     remoteVideoRef,
     remoteAudioRef,
@@ -94,6 +116,7 @@ export const ChatPage: React.FC = () => {
     endCall,
     toggleMuteAudio,
     toggleVideo,
+    toggleScreenShare,
   } = useWebRTC(room?.id);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -374,6 +397,8 @@ export const ChatPage: React.FC = () => {
           onStartVoiceCall={() => startCall('voice', otherUsername || 'Anónimo')}
           onStartVideoCall={() => startCall('video', otherUsername || 'Anónimo')}
           isE2EEReady={Boolean(e2eeKey)}
+          isCustomPinSet={Boolean(roomPin)}
+          onPromptPin={handlePromptPin}
         />
 
         {/* Pinned Message Banner */}
@@ -463,6 +488,7 @@ export const ChatPage: React.FC = () => {
         callDuration={callDuration}
         isAudioMuted={isAudioMuted}
         isVideoDisabled={isVideoDisabled}
+        isScreenSharing={isScreenSharing}
         localVideoRef={localVideoRef}
         remoteVideoRef={remoteVideoRef}
         remoteAudioRef={remoteAudioRef}
@@ -471,6 +497,7 @@ export const ChatPage: React.FC = () => {
         onEnd={() => endCall(true)}
         onToggleMuteAudio={toggleMuteAudio}
         onToggleVideo={toggleVideo}
+        onToggleScreenShare={toggleScreenShare}
       />
 
       {/* Delete Confirmation Modal */}

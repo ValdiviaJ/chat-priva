@@ -23,6 +23,11 @@ export const JoinRoom: React.FC = () => {
     if (isLoading) return;
 
     const cleanCode = code.trim().toUpperCase();
+    if (cleanCode === '99999999' || cleanCode === 'DECOY999') {
+      navigate('/decoy');
+      return;
+    }
+
     if (cleanCode.length !== 8) {
       showToast('El código debe tener exactamente 8 caracteres', 'warning');
       return;

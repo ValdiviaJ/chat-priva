@@ -19,10 +19,19 @@ export interface ReplyPayload {
   content: string; // The text content or JSON of attachment
 }
 
+export interface ViewOncePayload {
+  type: 'view_once';
+  mediaType: 'image' | 'text';
+  content: string; // Image URL or secret text
+  fileName?: string;
+  fileSize?: number;
+}
+
 export type ParsedPayload =
   | { kind: 'text'; text: string }
   | { kind: 'file'; file: FileAttachment }
   | { kind: 'audio'; audio: AudioAttachment }
+  | { kind: 'view_once'; viewOnce: ViewOncePayload }
   | { kind: 'reply'; reply: ReplyPayload; innerPayload: ParsedPayload };
 
 export function parseMessageContent(raw: string): ParsedPayload {
@@ -37,6 +46,9 @@ export function parseMessageContent(raw: string): ParsedPayload {
       }
       if (obj.type === 'audio' && obj.url) {
         return { kind: 'audio', audio: obj as AudioAttachment };
+      }
+      if (obj.type === 'view_once' && obj.content) {
+        return { kind: 'view_once', viewOnce: obj as ViewOncePayload };
       }
       if (obj.type === 'reply' && obj.replyTo && typeof obj.content === 'string') {
         const inner = parseMessageContent(obj.content);
